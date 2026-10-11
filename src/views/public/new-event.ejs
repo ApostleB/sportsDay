@@ -1,0 +1,32 @@
+<h1 class="title">운동회 만들기</h1>
+<%- include('../partials/alert') %>
+<form method="post" action="/events" class="card stack">
+  <label>회차
+    <input name="roundNo" type="number" min="1" required value="<%= values.roundNo %>">
+  </label>
+  <label>제목 <small class="muted">비워 두면 "제 n회 명량운동회"</small>
+    <input name="title" maxlength="50" value="<%= values.title %>">
+  </label>
+  <label>날짜
+    <input name="eventDate" type="date" value="<%= values.eventDate %>">
+  </label>
+  <label>집합 안내
+    <textarea name="meetInfo" rows="3"><%= values.meetInfo %></textarea>
+  </label>
+  <hr>
+  <label>생성자 PIN (숫자 6자리)
+    <input name="creatorPin" type="password" inputmode="numeric" pattern="\d{6}" maxlength="6" required>
+  </label>
+  <label>생성자 PIN 확인
+    <input name="creatorPinConfirm" type="password" inputmode="numeric" pattern="\d{6}" maxlength="6" required>
+  </label>
+  <p class="hint">생성자 PIN은 관리 페이지에 들어갈 때 씁니다. 참가자에게 알려주지 마세요.</p>
+  <hr>
+  <label>내 이름
+    <input name="creatorName" maxlength="20" required value="<%= values.creatorName %>">
+  </label>
+  <label>내 개인 PIN (숫자 4자리)
+    <input name="creatorPersonalPin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" required>
+  </label>
+  <button class="btn btn-primary">만들기</button>
+</form>

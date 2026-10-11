@@ -1,0 +1,13 @@
+<header class="hero" style="padding-top: 48px">
+  <h1 class="sticker" aria-label="명량운동회"><span class="back" aria-hidden="true">명량운동회</span><span class="front" aria-hidden="true">명량운동회</span></h1>
+  <p class="sub">우리끼리 매년 여는 진짜 운동회</p>
+</header>
+<%- include('../partials/alert') %>
+<form method="get" action="/go" class="card stack" style="margin-top: 32px">
+  <label>초대 링크 또는 운동회 코드
+    <input name="target" required placeholder="받은 링크를 붙여 넣으세요">
+  </label>
+  <button class="btn btn-primary">입장하기</button>
+</form>
+<a class="btn btn-block" href="/events/new">운동회 만들기</a>
+<p class="hint center" style="margin-top: 24px">운동회를 만든 사람이 보낸 초대 링크로 바로 들어올 수도 있어요.</p>

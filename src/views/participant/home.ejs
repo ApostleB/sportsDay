@@ -1,0 +1,36 @@
+<%- include('../partials/topbar') %>
+<header class="hero"><%- include('../partials/sticker', { compact: true }) %></header>
+<section class="card ink meet">
+  <span class="marker">집합 일시</span>
+  <p class="when tnum"><%= event.event_date ? fmtDate(event.event_date) : '날짜 미정' %></p>
+  <% if (event.meet_info) { %><p class="where pre"><%= event.meet_info %></p><% } %>
+</section>
+<div class="bib" aria-label="내 배번표">
+  <div class="meta"><%= event.title %> 참가자</div>
+  <div class="name"><%= participant.name %></div>
+  <span class="badge">팀 배정 전</span>
+</div>
+<section class="card">
+  <h2>공지</h2>
+  <% if (announcements.length === 0) { %><p class="muted">아직 공지가 없습니다.</p><% } %>
+  <ul class="list">
+    <% announcements.forEach((a) => { %>
+    <li><a href="<%= base %>/announcements/<%= a.id %>"><% if (a.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= a.title %></a></li>
+    <% }) %>
+  </ul>
+</section>
+<section class="card">
+  <h2>시간표</h2>
+  <% if (schedules.length === 0) { %><p class="muted">아직 시간표가 없습니다.</p><% } %>
+  <% schedules.forEach((s) => { %>
+  <figure class="schedule">
+    <a href="/uploads/<%= s.file_name %>" target="_blank" rel="noopener">
+      <img src="/uploads/<%= s.file_name %>" alt="<%= s.caption || '시간표' %>" loading="lazy">
+    </a>
+    <figcaption class="row" style="justify-content: space-between">
+      <span><%= s.caption %></span>
+      <a class="btn btn-small" href="/uploads/<%= s.file_name %>" target="_blank" rel="noopener">크게 보기</a>
+    </figcaption>
+  </figure>
+  <% }) %>
+</section>

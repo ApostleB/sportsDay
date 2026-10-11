@@ -1,0 +1,7 @@
+<%- include('../partials/topbar') %>
+<p><a class="btn btn-small" href="<%= base %>/home">홈으로</a></p>
+<article class="card">
+  <h1 class="headline"><% if (announcement.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= announcement.title %></h1>
+  <p class="muted tnum"><%= fmtDateTime(announcement.created_at) %></p>
+  <div class="pre" style="margin-top: 12px"><%= announcement.body %></div>
+</article>

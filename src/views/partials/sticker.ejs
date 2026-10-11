@@ -1,0 +1,5 @@
+<% const fullTitle = event.title; const prefix = '제 ' + event.round_no + '회'; const hasPrefix = fullTitle.startsWith(prefix); %>
+<h1 class="sticker<%= locals.compact ? ' compact' : '' %>" aria-label="<%= fullTitle %>">
+  <span class="back" aria-hidden="true"><%= fullTitle %></span>
+  <span class="front" aria-hidden="true"><% if (hasPrefix) { %><span class="round"><%= prefix %></span><%= fullTitle.slice(prefix.length) %><% } else { %><%= fullTitle %><% } %></span>
+</h1>

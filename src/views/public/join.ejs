@@ -1,0 +1,19 @@
+<header class="hero" style="padding-top: 24px">
+  <%- include('../partials/sticker') %>
+  <% if (event.event_date) { %><p class="sub"><span class="marker">집합 일시</span> <%= fmtDate(event.event_date) %></p><% } %>
+</header>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/join" class="card ink stack">
+  <h2>참가자 입장</h2>
+  <label>이름
+    <input name="name" maxlength="20" required value="<%= values.name %>">
+  </label>
+  <label>개인 PIN (숫자 4자리)
+    <input name="pin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" required>
+    <span class="hint">처음 입장하면 지금 입력한 PIN이 내 PIN이 돼요. 다시 들어올 때 같은 이름과 PIN을 입력하세요.</span>
+  </label>
+  <label>인증코드
+    <input name="authCode" required autocapitalize="characters" value="<%= values.authCode %>">
+  </label>
+  <button class="btn btn-primary">운동회 입장하기</button>
+</form>
