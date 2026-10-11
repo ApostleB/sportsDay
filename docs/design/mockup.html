@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>명량운동회 디자인 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #FFF8EE; --surface: #FFFFFF; --ink: #24211E; --muted: #686058; --line: #DED5CB;
+  --orange: #FF8A3D; --sky: #3FB6F0; --marker: #FFE66B; --rest: #E7F5FD; --focus: #175CD3; --danger: #B42318;
+  --team-red: #C93636; --team-blue: #245BC7; --team-green: #237448; --team-yellow: #F4D34E;
+}
+* { box-sizing: border-box; }
+body { margin: 0; word-break: keep-all; overflow-wrap: break-word; background: #F3EADF; color: var(--ink); font: 400 16px/1.6 'Noto Sans KR', system-ui, sans-serif; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+/* 목업 전시용 */
+.gallery-head { max-width: 1200px; margin: 0 auto; padding: 32px 16px 8px; }
+.gallery-head h1 { font: 400 28px/1.2 'Jua'; margin: 0 0 4px; }
+.gallery-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.gallery { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 32px 24px; align-items: start; }
+.gallery.wide { grid-template-columns: 1fr; }
+.screen-label { font: 700 13px/1 'Noto Sans KR'; color: var(--muted); margin: 0 0 8px 4px; letter-spacing: .02em; }
+.phone { width: 100%; max-width: 390px; border-radius: 28px; border: 2px solid var(--ink); overflow: hidden; background: var(--paper); box-shadow: 0 10px 30px rgba(36,33,30,.12); }
+.desk { border-radius: 14px; border: 2px solid var(--ink); overflow: hidden; background: var(--paper); box-shadow: 0 10px 30px rgba(36,33,30,.12); }
+
+/* ===== 실제 디자인 시스템 ===== */
+.page { padding: 20px 16px 32px; min-height: 640px; position: relative; }
+.page.has-band { padding-bottom: 40px; }
+.page.has-band::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: var(--orange); }
+.topbar { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--paper); font-size: 14px; }
+.topbar .brand { font: 400 18px/1 'Jua'; }
+.topbar .brand b { color: var(--orange); font-weight: 400; }
+.chip { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); font: 500 14px 'Noto Sans KR'; color: var(--ink); cursor: pointer; }
+details.me { position: relative; }
+details.me summary { list-style: none; }
+details.me summary::-webkit-details-marker { display: none; }
+details.me .menu { position: absolute; right: 0; top: 50px; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 12px; padding: 8px; z-index: 5; box-shadow: 3px 4px 0 var(--ink); }
+
+.sticker { display: inline-grid; margin: 0; font: 400 clamp(34px, 9vw, 44px)/1.15 'Jua'; letter-spacing: -.01em; }
+.sticker > span { grid-area: 1 / 1; }
+.sticker .back { color: var(--ink); -webkit-text-stroke: 7px var(--ink); text-shadow: 2px 3px 0 var(--ink); }
+.sticker .front { color: #fff; }
+.sticker .round { color: var(--orange); }
+.hero { text-align: center; padding: 12px 0 4px; position: relative; }
+.hero .medal { position: absolute; right: 4px; top: -4px; width: 32px; }
+.hero .tagline { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+
+.marker { display: inline-block; background: linear-gradient(transparent 35%, var(--marker) 35%, var(--marker) 90%, transparent 90%); font-weight: 700; padding: 0 4px; }
+.h2 { font: 400 22px/1.3 'Jua'; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+.h2::before { content: ''; width: 4px; height: 20px; border-radius: 2px; background: var(--sky); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 16px; }
+.phone .card { padding: 16px; margin-top: 12px; }
+.phone .list li { padding: 12px 0; }
+.sticker.compact { font-size: clamp(28px, 8.5vw, 34px); line-height: 1.2; letter-spacing: -.02em; }
+.card.ink { border: 2px solid var(--ink); }
+.stack { display: grid; gap: 20px; }
+.muted { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.btn { min-height: 48px; padding: 12px 20px; border: 2px solid var(--ink); border-radius: 12px; font: 700 16px 'Noto Sans KR'; background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform 120ms, box-shadow 120ms; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.btn.primary { background: var(--orange); }
+.btn.block { width: 100%; }
+.btn.small { min-height: 44px; padding: 8px 14px; font-size: 14px; box-shadow: none; border-width: 1.5px; }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.ghost { border-color: transparent; box-shadow: none; background: transparent; color: var(--muted); }
+
+label.field { display: grid; gap: 6px; font: 500 14px/1.4 'Noto Sans KR'; }
+.input { min-height: 52px; width: 100%; padding: 12px 14px; border: 1.5px solid var(--muted); border-radius: 10px; font: 400 16px 'Noto Sans KR'; background: var(--surface); color: var(--ink); }
+.input.error { border-color: var(--danger); }
+.err { color: var(--danger); font-size: 13px; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font: 700 13px/1.2 'Noto Sans KR'; background: #F2E8DD; color: var(--ink); }
+.badge.pin { background: var(--orange); }
+.badge.t-red { background: var(--team-red); color: #fff; }
+.badge.t-blue { background: var(--team-blue); color: #fff; }
+.badge.t-green { background: var(--team-green); color: #fff; }
+.badge.t-yellow { background: var(--team-yellow); color: var(--ink); }
+
+/* 비브 */
+.bib { position: relative; min-height: 136px; margin-top: 16px; padding: 22px 16px 16px; background: var(--surface); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 4px 0 var(--ink); overflow: hidden; }
+.bib::before, .bib::after { content: ''; position: absolute; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); }
+.bib::before { left: 12px; } .bib::after { right: 12px; }
+.bib .band { position: absolute; left: 0; right: 0; top: 0; height: 8px; }
+.bib .meta { font-size: 13px; color: var(--muted); }
+.bib .name { font: 700 28px/1.3 'Noto Sans KR'; margin: 2px 0 8px; word-break: keep-all; }
+.bib.team-blue .band { background: var(--team-blue); }
+
+/* 집합 안내 */
+.meet .when { font: 700 24px/1.3 'Noto Sans KR'; margin: 8px 0 2px; }
+.meet .where { font-size: 18px; margin: 0; }
+
+/* 리스트 */
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { min-height: 48px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.list li:last-child { border-bottom: 0; }
+.list .date { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+/* 시간표 썸네일(이미지 자리) */
+.sched { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.sched table { width: 100%; border-collapse: collapse; }
+.sched th { background: var(--sky); color: var(--ink); padding: 8px; text-align: left; }
+.sched td { padding: 8px; border-top: 1px solid var(--line); }
+.sched tr.rest td { background: var(--rest); font-weight: 700; }
+.sched-caption { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+/* 참여 카드 */
+.join-card { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.join-card .ico { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; background: var(--marker); border: 2px solid var(--ink); font-size: 22px; flex: none; }
+.join-card .txt { flex: 1; }
+.join-card .txt b { display: block; }
+
+/* 팀 뽑기 */
+.drum { margin: 28px auto 24px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 30%, #FFE9D6 70%); border: 3px solid var(--ink); box-shadow: 4px 5px 0 var(--ink); display: grid; place-items: center; text-align: center; }
+.drum .slot { font: 400 28px/1.2 'Jua'; min-height: 34px; }
+.drum.shake { animation: shake 300ms ease-in-out 2; }
+@keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+.reveal { animation: reveal 400ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes reveal { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .drum.shake, .reveal { animation: none; } }
+
+/* 관리 화면 */
+.admin-top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.admin-top .brand { font: 400 20px 'Jua'; }
+.admin-body { padding: 20px; max-width: 960px; margin: 0 auto; }
+.nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-size: 14px; }
+.nav a.on { border-color: var(--ink); font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.stat b { display: block; font: 400 32px/1.1 'Jua'; }
+.stat span { color: var(--muted); font-size: 13px; }
+.copy { display: flex; gap: 8px; align-items: center; }
+.copy code { flex: 1; min-height: 48px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; background: #F7F1EA; border: 1px dashed var(--line); font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+table.grid { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.grid th { background: var(--sky); color: var(--ink); text-align: left; padding: 12px; white-space: nowrap; }
+table.grid td { padding: 8px 12px; height: 48px; border-top: 1px solid var(--line); white-space: nowrap; }
+table.grid td:first-child, table.grid th:first-child { position: sticky; left: 0; background: inherit; }
+table.grid td:first-child { background: var(--surface); font-weight: 700; }
+table.grid select { min-height: 40px; border: 1.5px solid var(--line); border-radius: 8px; padding: 0 8px; font: inherit; background: #fff; }
+.row-actions { display: flex; gap: 6px; }
+@media (min-width: 768px) { .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .two-col > .card { margin-top: 0; } }
+
+.notes { max-width: 1200px; margin: 8px auto 48px; padding: 0 16px; font-size: 14px; color: var(--muted); }
+.notes li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<header class="gallery-head">
+  <h1>명량운동회 디자인 목업</h1>
+  <p>Claude Opus와 Codex(gpt-6-astra)의 토론 합의안. 컨셉: 우리 운동회 포스터가 손안의 배번표로.</p>
+</header>
+
+<section class="gallery">
+
+  <!-- 1. 메인 -->
+  <div>
+    <p class="screen-label">1. 메인</p>
+    <div class="phone"><div class="page has-band">
+      <div class="hero" style="padding-top:56px">
+        <svg class="medal" viewBox="0 0 32 40" aria-hidden="true"><path d="M8 0h6l2 12-6 2zM18 0h6l-2 14-6-2z" fill="#3FB6F0" stroke="#24211E" stroke-width="1.5"/><circle cx="16" cy="26" r="11" fill="#FFE66B" stroke="#24211E" stroke-width="2"/><text x="16" y="31" font-size="12" text-anchor="middle" font-family="Jua" fill="#24211E">1</text></svg>
+        <h1 class="sticker" aria-label="명량운동회"><span class="back" aria-hidden="true">명량운동회</span><span class="front" aria-hidden="true">명량운동회</span></h1>
+        <p class="tagline">우리끼리 매년 여는 진짜 운동회</p>
+      </div>
+      <div class="card stack" style="margin-top:32px">
+        <label class="field">초대 링크 또는 운동회 코드
+          <input class="input" placeholder="받은 링크를 붙여 넣으세요">
+        </label>
+        <button class="btn primary block">입장하기</button>
+      </div>
+      <div style="margin-top:16px"><a class="btn block" href="#">운동회 만들기</a></div>
+      <p class="muted" style="text-align:center;margin-top:24px">운동회를 만든 사람이 보낸 초대 링크로 바로 들어올 수도 있어요.</p>
+    </div></div>
+  </div>
+
+  <!-- 2. 입장 -->
+  <div>
+    <p class="screen-label">2. 입장 (인증코드 오류 상태)</p>
+    <div class="phone"><div class="page has-band">
+      <div class="hero" style="padding-top:24px">
+        <h1 class="sticker" aria-label="제 3회 명량운동회"><span class="back" aria-hidden="true">제 3회<br>명량운동회</span><span class="front" aria-hidden="true"><span class="round">제 3회</span><br>명량운동회</span></h1>
+        <p class="tagline"><span class="marker">집합 일시</span> 2026년 10월 10일 (토) 오전 7:50</p>
+      </div>
+      <form class="card ink stack" onsubmit="return false">
+        <div class="h2" style="margin:0">참가자 입장</div>
+        <label class="field">이름
+          <input class="input" value="홍길동">
+        </label>
+        <label class="field">개인 PIN (숫자 4자리)
+          <input class="input tnum" type="password" inputmode="numeric" maxlength="4" value="1234">
+          <span class="muted">처음 입장하면 지금 입력한 PIN이 내 PIN이 돼요.</span>
+        </label>
+        <label class="field">인증코드
+          <input class="input error tnum" value="AB12C9" aria-invalid="true">
+          <span class="err">인증코드가 올바르지 않습니다</span>
+        </label>
+        <button class="btn primary block">운동회 입장하기</button>
+      </form>
+    </div></div>
+  </div>
+
+  <!-- 3. 참가자 홈 (뽑기 전) -->
+  <div>
+    <p class="screen-label">3. 참가자 홈 (팀 뽑기 열림)</p>
+    <div class="phone">
+      <div class="topbar">
+        <span class="brand"><b>제3회</b> 명량운동회</span>
+        <details class="me"><summary class="chip">홍길동 ▾</summary><div class="menu"><button class="btn small danger">이 기기에서 나가기</button></div></details>
+      </div>
+      <div class="page has-band" style="padding-top:12px">
+        <div class="hero">
+          <h1 class="sticker compact" aria-label="제 3회 명량운동회"><span class="back" aria-hidden="true">제 3회 명량운동회</span><span class="front" aria-hidden="true"><span class="round">제 3회</span> 명량운동회</span></h1>
+        </div>
+        <section class="card ink meet">
+          <span class="marker">집합 일시</span>
+          <p class="when tnum">10월 10일 (토) 오전 7:50</p>
+          <p class="where">이촌동 한강맨션 21동 1층 104호 앞</p>
+        </section>
+        <div class="bib" aria-label="내 배번표">
+          <div class="meta">제 3회 명량운동회 참가자</div>
+          <div class="name">홍길동</div>
+          <span class="badge">팀 배정 전</span>
+        </div>
+        <section class="card join-card">
+          <div class="ico" aria-hidden="true">🎲</div>
+          <div class="txt"><b>팀 뽑기가 열렸어요</b><span class="muted">2그룹 · 아직 4명이 안 뽑았어요</span></div>
+          <a class="btn primary small" style="box-shadow:0 3px 0 var(--ink);border-width:2px" href="#draw">뽑기</a>
+        </section>
+        <section class="card">
+          <div class="h2">공지</div>
+          <ul class="list">
+            <li><span class="badge pin">고정</span>버스 출발 8시 정각, 늦으면 두고 감</li>
+            <li>장애물 달리기 3인4각 짝 발표<span class="date tnum">10.08</span></li>
+            <li>바비큐 파티 위장 준비물 안내<span class="date tnum">10.05</span></li>
+          </ul>
+        </section>
+        <section class="card">
+          <div class="h2">시간표</div>
+          <div class="sched" role="img" aria-label="제3회 시간표 이미지 자리">
+            <table>
+              <tr><th>시간</th><th>활동</th><th>준비물</th></tr>
+              <tr><td class="tnum">07:50</td><td>이촌동 집합</td><td>몸</td></tr>
+              <tr><td class="tnum">11:00</td><td>둥글게 둥글게</td><td>순발력</td></tr>
+              <tr class="rest"><td class="tnum">12:30</td><td>점심시간</td><td>입</td></tr>
+              <tr><td class="tnum">13:30</td><td>줄다리기</td><td>악바리</td></tr>
+            </table>
+          </div>
+          <div class="sched-caption"><span class="muted">제3회 시간표</span><a class="btn small" href="#">크게 보기</a></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 팀 뽑기 연출 -->
+  <div id="draw">
+    <p class="screen-label">4. 팀 뽑기 연출 (눌러서 실행해 보세요)</p>
+    <div class="phone">
+      <div class="topbar"><a class="chip" href="#" style="text-decoration:none">← 홈</a><span class="brand">팀 뽑기</span><span style="width:60px"></span></div>
+      <div class="page has-band" style="text-align:center">
+        <p class="muted" style="font-size:14px;margin-top:8px">2그룹 · 남은 자리</p>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+          <span class="badge t-red">● 레드</span><span class="badge t-blue">▲ 블루</span><span class="badge t-green">■ 그린</span><span class="badge t-yellow">★ 옐로우</span>
+        </div>
+        <div class="drum" id="drum"><div><div class="slot" id="slot">?</div><div class="muted" id="slotHint">두근두근</div></div></div>
+        <div id="drawResult" aria-live="polite"></div>
+        <div id="drawControls" style="display:grid;gap:12px;margin-top:16px">
+          <button class="btn primary block" id="drawBtn" style="min-height:52px">뽑기!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 참가자 홈 (뽑기 후 비브) -->
+  <div>
+    <p class="screen-label">5. 뽑기 후 내 배번표</p>
+    <div class="phone"><div class="page has-band">
+      <div class="bib team-blue">
+        <div class="band"></div>
+        <div class="meta">제 3회 명량운동회 참가자</div>
+        <div class="name">홍길동</div>
+        <span class="badge t-blue">▲ 블루팀</span>
+        <span class="badge" style="margin-left:4px">대표: 김철수</span>
+      </div>
+      <section class="card join-card">
+        <div class="ico" aria-hidden="true">💌</div>
+        <div class="txt"><b>내 마니또를 확인하세요</b><span class="muted">PIN을 한 번 더 입력하면 보여요</span></div>
+        <a class="btn small" href="#">확인</a>
+      </section>
+      <section class="card join-card">
+        <div class="ico" aria-hidden="true">🗳️</div>
+        <div class="txt"><b>점심 메뉴 투표</b><span class="muted">익명 · 최대 2개 선택</span></div>
+        <a class="btn small" href="#">투표</a>
+      </section>
+    </div></div>
+  </div>
+
+</section>
+
+<section class="gallery wide">
+  <!-- 6. 생성자 대시보드 -->
+  <div>
+    <p class="screen-label">6. 생성자 관리 화면 (데스크톱 폭, 장식 최소화)</p>
+    <div class="desk">
+      <div class="admin-top"><span class="brand">운동회 관리 · 제3회</span><a class="chip" href="#" style="text-decoration:none">참가자 화면</a></div>
+      <div class="admin-body">
+        <nav class="nav"><a class="on" href="#">대시보드</a><a href="#">운동회 정보</a><a href="#">참가자</a><a href="#">공지</a><a href="#">시간표</a></nav>
+        <div class="stats" style="margin-top:16px">
+          <div class="stat"><b class="tnum">27</b><span>참가자</span></div>
+          <div class="stat"><b class="tnum">25</b><span>참석</span></div>
+          <div class="stat"><b>진행중</b><span>상태</span></div>
+        </div>
+        <div class="two-col" style="margin-top:16px">
+          <section class="card">
+            <div class="h2">초대 링크</div>
+            <div class="copy"><code>https://myeongnyang.app/e/k7mq2zpa?code=AB12C3</code><button class="btn small">복사</button></div>
+            <p class="muted" style="margin-top:8px">인증코드 <b>AB12C3</b></p>
+          </section>
+          <section class="card">
+            <div class="h2">최근 공지</div>
+            <ul class="list"><li><span class="badge pin">고정</span>버스 출발 8시 정각</li><li>3인4각 짝 발표<span class="date tnum">10.08</span></li></ul>
+          </section>
+        </div>
+        <section style="margin-top:16px">
+          <div class="h2">참가자</div>
+          <div class="table-wrap">
+            <table class="grid">
+              <tr><th>이름</th><th>성별</th><th>덩치</th><th>운동능력</th><th>출석</th><th></th></tr>
+              <tr><td>홍길동</td><td><select><option>남</option></select></td><td><select><option>4</option></select></td><td><select><option>3</option></select></td><td><select><option>참석</option></select></td><td><div class="row-actions"><button class="btn small">저장</button><button class="btn small danger">삭제</button></div></td></tr>
+              <tr><td>김영희</td><td><select><option>여</option></select></td><td><select><option>2</option></select></td><td><select><option>5</option></select></td><td><select><option>참석</option></select></td><td><div class="row-actions"><button class="btn small">저장</button><button class="btn small danger">삭제</button></div></td></tr>
+              <tr><td>남궁민원</td><td><select><option>-</option></select></td><td><select><option>-</option></select></td><td><select><option>-</option></select></td><td><select><option>미출석</option></select></td><td><div class="row-actions"><button class="btn small">저장</button><button class="btn small danger">삭제</button></div></td></tr>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 관리자 목록 -->
+  <div>
+    <p class="screen-label">7. 플랫폼 관리자 목록</p>
+    <div class="desk">
+      <div class="admin-top"><span class="brand">플랫폼 관리</span><button class="btn ghost small">로그아웃</button></div>
+      <div class="admin-body">
+        <div class="table-wrap">
+          <table class="grid">
+            <tr><th>제목</th><th>회차</th><th>참가자</th><th>상태</th><th>생성일</th></tr>
+            <tr><td>제 3회 명량운동회</td><td class="tnum">3</td><td class="tnum">27</td><td><span class="badge" style="background:var(--marker)">진행중</span></td><td class="tnum">2026. 09. 01.</td></tr>
+            <tr><td>제 2회 명량운동회</td><td class="tnum">2</td><td class="tnum">24</td><td><span class="badge">종료</span></td><td class="tnum">2025. 09. 03.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<ul class="notes">
+  <li>서체: 제목 Jua, 본문 Noto Sans KR. 스티커 제목은 외곽선 레이어를 뒤에 따로 겹쳐 글자가 얇아지지 않게 했습니다.</li>
+  <li>팀은 색과 기호(● ▲ ■ ★)를 함께 써서 색을 구별하기 어려운 사람도 알아볼 수 있습니다.</li>
+  <li>강한 장식(잉크 테두리, 오프셋 그림자)은 집합 안내와 배번표, 주요 버튼에만 씁니다. 관리 화면에는 쓰지 않습니다.</li>
+  <li>시간표 자리는 업로드한 이미지가 들어갈 곳입니다. 여기서는 포스터 느낌을 보여주려고 표로 대신 그렸습니다.</li>
+</ul>
+
+<script>
+(function () {
+  const teams = [
+    { name: '레드', mark: '●', cls: 't-red' },
+    { name: '블루', mark: '▲', cls: 't-blue' },
+    { name: '그린', mark: '■', cls: 't-green' },
+    { name: '옐로우', mark: '★', cls: 't-yellow' },
+  ];
+  const result = teams[1];
+  const drum = document.getElementById('drum');
+  const slot = document.getElementById('slot');
+  const hint = document.getElementById('slotHint');
+  const out = document.getElementById('drawResult');
+  const controls = document.getElementById('drawControls');
+  const btn = document.getElementById('drawBtn');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let timers = [];
+
+  function showResult() {
+    timers.forEach(clearTimeout); timers = [];
+    slot.textContent = result.mark;
+    hint.textContent = '결과 발표';
+    out.innerHTML = '<div class="bib team-blue reveal" style="text-align:left"><div class="band"></div><div class="meta">제 3회 명량운동회 참가자</div><div class="name">홍길동</div><span class="badge ' + result.cls + '">' + result.mark + ' ' + result.name + '팀</span></div>';
+    controls.innerHTML = '<button class="btn block" id="again">다시 해보기 (목업 전용)</button>';
+    document.getElementById('again').onclick = reset;
+  }
+
+  function reset() {
+    out.innerHTML = ''; slot.textContent = '?'; hint.textContent = '두근두근';
+    controls.innerHTML = ''; controls.appendChild(btn);
+  }
+
+  btn.onclick = function () {
+    if (reduce) return showResult();
+    controls.innerHTML = '<button class="btn ghost block" id="skip">결과 바로 보기</button>';
+    document.getElementById('skip').onclick = showResult;
+    hint.textContent = '섞는 중';
+    drum.classList.remove('shake'); void drum.offsetWidth; drum.classList.add('shake');
+    // 600ms 흔들림 후 1800ms 동안 감속하며 팀 이름 순환
+    let t = 600, i = 0, delay = 60;
+    while (t < 2400) {
+      const team = teams[i % teams.length];
+      timers.push(setTimeout(() => { slot.textContent = team.mark + ' ' + team.name; }, t));
+      t += delay; delay = Math.round(delay * 1.18); i++;
+    }
+    timers.push(setTimeout(() => { slot.textContent = result.mark + ' ' + result.name; }, 2400));
+    timers.push(setTimeout(showResult, 2800));
+  };
+})();
+</script>
+</body>
+</html>
