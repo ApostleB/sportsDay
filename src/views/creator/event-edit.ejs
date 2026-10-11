@@ -1,0 +1,19 @@
+<h1 class="title">운동회 정보</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/event" class="card stack">
+  <label>회차<input name="roundNo" type="number" min="1" required value="<%= values.round_no %>"></label>
+  <label>제목<input name="title" maxlength="50" value="<%= values.title %>"></label>
+  <label>날짜<input name="eventDate" type="date" value="<%= values.event_date %>"></label>
+  <label>집합 안내<textarea name="meetInfo" rows="3"><%= values.meet_info %></textarea></label>
+  <label>인증코드 <small class="muted">영문·숫자 4~12자</small><input name="authCode" required value="<%= values.auth_code %>"></label>
+  <label>상태
+    <select name="status">
+      <% ['ready', 'live', 'closed'].forEach((s) => { %>
+      <option value="<%= s %>" <%= values.status === s ? 'selected' : '' %>><%= statusLabel(s) %></option>
+      <% }) %>
+    </select>
+  </label>
+  <p class="hint">상태가 종료이면 새 참가자는 입장할 수 없고 기존 참가자만 다시 들어올 수 있습니다.</p>
+  <button class="btn btn-primary">저장</button>
+</form>

@@ -1,0 +1,31 @@
+<h1 class="title">참가자 관리</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<p class="muted">총 <%= list.length %>명 · 참석 <%= list.filter((p) => p.attendance === 'present').length %>명</p>
+<div class="table-wrap" style="margin-top:12px">
+  <table>
+    <thead><tr><th>이름</th><th>입장일</th><th>출석</th><th></th></tr></thead>
+    <tbody>
+      <% list.forEach((p) => { const f = 'p-' + p.id; %>
+      <tr>
+        <td><strong><%= p.name %></strong></td>
+        <td class="tnum"><%= fmtDateTime(p.created_at) %></td>
+        <td>
+          <select name="attendance" form="<%= f %>" aria-label="<%= p.name %> 출석 상태">
+            <option value="present" <%= p.attendance === 'present' ? 'selected' : '' %>>참석</option>
+            <option value="absent" <%= p.attendance === 'absent' ? 'selected' : '' %>>미출석</option>
+          </select>
+        </td>
+        <td>
+          <div class="row">
+            <form id="<%= f %>" method="post" action="<%= base %>/manage/participants/<%= p.id %>"><button class="btn btn-small">저장</button></form>
+            <form method="post" action="<%= base %>/manage/participants/<%= p.id %>/delete" data-msg="<%= p.name %>님을 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
+              <button class="btn btn-small btn-danger">삭제</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

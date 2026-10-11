@@ -1,0 +1,13 @@
+<h1 class="title"><%= event.title %></h1>
+<%- include('../partials/creator-nav') %>
+<section class="stats">
+  <div><strong><%= total %></strong>참가자</div>
+  <div><strong><%= present %></strong>참석</div>
+  <div><strong><%= statusLabel(event.status) %></strong>상태</div>
+</section>
+<section class="card stack">
+  <h2>초대 링크</h2>
+  <p class="copy" id="invite"><%= inviteUrl %></p>
+  <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('invite').textContent).then(() => { this.textContent = '복사했습니다'; })">링크 복사</button>
+  <p class="hint">인증코드 <strong><%= event.auth_code %></strong></p>
+</section>

@@ -1,0 +1,9 @@
+<h1 class="title center">생성자 확인</h1>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/unlock" class="card stack">
+  <label>생성자 PIN (숫자 6자리)
+    <input name="pin" type="password" inputmode="numeric" pattern="\d{6}" maxlength="6" required autofocus>
+  </label>
+  <button class="btn btn-primary">확인</button>
+</form>
+<p class="center"><a href="<%= base %>/home">참가자 화면으로</a></p>

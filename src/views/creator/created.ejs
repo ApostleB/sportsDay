@@ -1,0 +1,12 @@
+<header class="hero">
+  <p class="sub">제 <%= event.round_no %>회</p>
+  <h1 class="title"><%= event.title %></h1>
+</header>
+<section class="card stack">
+  <h2>초대 링크</h2>
+  <p class="copy" id="invite"><%= inviteUrl %></p>
+  <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('invite').textContent).then(() => { this.textContent = '복사했습니다'; })">링크 복사</button>
+  <p class="hint">인증코드 <strong><%= event.auth_code %></strong> 가 링크에 들어 있습니다.</p>
+</section>
+<p class="alert alert-error">생성자 PIN은 다시 확인할 수 없습니다. 잊어버리면 플랫폼 관리자에게 재설정을 요청하세요.</p>
+<a class="btn btn-primary" href="<%= base %>/manage">관리 페이지로</a>

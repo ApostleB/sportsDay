@@ -52,4 +52,6 @@ router.post('/logout', (req, res) => {
   res.redirect(res.locals.base);
 });
 
+router.use('/manage', require('./creator'));
+
 module.exports = router;

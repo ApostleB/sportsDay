@@ -1,0 +1,9 @@
+<nav class="nav">
+  <a href="<%= base %>/manage">대시보드</a>
+  <a href="<%= base %>/manage/event">운동회 정보</a>
+  <a href="<%= base %>/manage/participants">참가자</a>
+  <a href="<%= base %>/manage/announcements">공지</a>
+  <a href="<%= base %>/manage/schedules">시간표</a>
+  <a href="<%= base %>/home">참가자 화면</a>
+  <% if (isAdmin) { %><a href="/admin">플랫폼 관리</a><% } %>
+</nav>
