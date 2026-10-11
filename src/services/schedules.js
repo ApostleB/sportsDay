@@ -73,7 +73,11 @@ async function remove(eventId, id) {
     [eventId, id],
   );
   if (!rows[0]) return false;
-  await removeFile(rows[0].file_name);
+  try {
+    await removeFile(rows[0].file_name);
+  } catch (err) {
+    console.error(`Failed to delete file "${rows[0].file_name}":`, err.message);
+  }
   return true;
 }
 

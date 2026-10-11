@@ -48,8 +48,12 @@ test('삭제하면 파일도 지워지고 다른 운동회의 시간표는 지�
 });
 
 test('removeFile은 경로 조작 파일명을 무시한다', async () => {
+  const escapePath = path.join(process.env.UPLOAD_DIR, '..', 'escape.png');
+  fs.writeFileSync(escapePath, 'x');
   await schedules.removeFile('../escape.png');
-  await schedules.removeFile('없는파일.png');
+  assert.equal(fs.existsSync(escapePath), true, 'escape.png should not be deleted');
+  fs.unlinkSync(escapePath);
+  await schedules.removeFile('missing-file.png');
 });
 
 test('bigint 범위를 초과하는 id는 false', async () => {
@@ -57,4 +61,21 @@ test('bigint 범위를 초과하는 id는 false', async () => {
   assert.equal(await schedules.updateCaption(event.id, '99999999999999999999', 'x'), false);
   assert.equal(await schedules.move(event.id, '99999999999999999999', 'up'), false);
   assert.equal(await schedules.remove(event.id, '99999999999999999999'), false);
+});
+
+test('remove는 파일 삭제 실패를 처리하고 행은 여전히 삭제된다', async () => {
+  const { event } = await H.makeEvent();
+  const dirPath = path.join(process.env.UPLOAD_DIR, 'dir-as-file.png');
+  fs.mkdirSync(dirPath);
+  fs.writeFileSync(path.join(dirPath, 'nested.txt'), 'x');
+  const s = await schedules.add(event.id, { fileName: 'dir-as-file.png', caption: '' });
+  const originalError = console.error;
+  let errorCalled = false;
+  console.error = () => { errorCalled = true; };
+  const result = await schedules.remove(event.id, s.id);
+  console.error = originalError;
+  assert.equal(result, true, 'remove should return true despite file deletion failure');
+  assert.equal(await schedules.list(event.id).then((list) => list.length), 0, 'row should be deleted');
+  assert.equal(errorCalled, true, 'console.error should have been called');
+  fs.rmSync(dirPath, { recursive: true, force: true });
 });
