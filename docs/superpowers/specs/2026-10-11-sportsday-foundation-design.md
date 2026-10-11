@@ -157,7 +157,7 @@ req.session.events = {                         // 운동회별 입장 정보
 한 브라우저가 여러 운동회에 동시에 입장할 수 있도록 운동회별로 저장한다.
 
 - **requireParticipant**: URL의 slug로 운동회를 찾고, 세션에 그 운동회 입장 정보가 없으면 `/e/:slug`로 리다이렉트. 참가자가 DB에서 삭제되었으면 세션 항목을 지우고 리다이렉트
-- **requireCreator**: requireParticipant 통과 후 `isCreator`가 아니면 `/e/:slug/manage/unlock`(생성자 PIN 입력 폼)으로 리다이렉트
+- **requireCreator**: `session.admin`이면 참가자 세션 없이 바로 통과한다. 그 외에는 requireParticipant 통과 후 `isCreator`가 아니면 `/e/:slug/manage/unlock`(생성자 PIN 입력 폼)으로 리다이렉트
 - **requireAdmin**: `session.admin`이 아니면 `/admin/login`으로 리다이렉트
 - 로그인·입장 성공 시 `req.session.regenerate`로 세션 고정 공격을 막는다
 - 비밀번호·PIN 비교 실패는 같은 메시지("정보가 일치하지 않습니다")로 응답한다
@@ -198,7 +198,7 @@ req.session.events = {                         // 운동회별 입장 정보
 - `GET /admin/events/:id`: 상세. 참가자 목록, 공지, 시간표, 생성자 기능 전체를 대신 수행할 수 있는 링크
 - 참가자 PIN 재설정, 생성자 PIN 재설정: 새 값을 직접 입력
 - 운동회 삭제(확인 입력 필요)
-- 관리자는 생성자 화면에 그대로 진입할 수 있다. `requireCreator`는 `session.admin`이면 통과
+- 관리자는 생성자 화면에 그대로 진입할 수 있다(5절 requireCreator 참고)
 - 마니또 잠금 토글과 민감정보 화면은 3단계에서 추가하며, 관리자 화면의 마니또·익명 투표 관련 이름은 `mask.js`로 마스킹한다. 규칙: 2자 이름은 `홍*`, 3자 이상은 첫 글자와 마지막 글자만 남기고 `*`(예: `홍*동`, `남**원`)
 
 ## 7. 화면 디자인
