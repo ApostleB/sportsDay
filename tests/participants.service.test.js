@@ -87,3 +87,10 @@ test('bigint 범위를 초과하는 id는 null/false', async () => {
   assert.equal(await participants.deleteParticipant(event.id, '99999999999999999999'), false);
   assert.equal(await participants.resetPin(event.id, '99999999999999999999', '9999'), false);
 });
+
+test('앞자리 0이 붙은 id는 거부한다', async () => {
+  const { event, participant } = await H.makeEvent();
+  assert.equal(await participants.getParticipant(event.id, '0' + participant.id), null);
+  assert.equal(await participants.deleteParticipant(event.id, '0' + participant.id), false);
+  assert.ok(await participants.getParticipant(event.id, participant.id));
+});

@@ -114,3 +114,11 @@ test('생성자 권한은 다시 입장해도 유지되지만 다른 이름으�
   await agent.post(`/e/${event.slug}/join`).type('form').send({ name: '다른사람', pin: '3333', authCode: event.auth_code }).expect(302);
   await agent.get(`/e/${event.slug}/manage`).expect(302);
 });
+
+test('앞자리 0을 붙인 본인 id로 삭제를 우회할 수 없다', async () => {
+  const { event, participant: creator } = await H.makeEvent();
+  const agent = await H.creatorAgent(event);
+  await agent.post(`/e/${event.slug}/manage/participants/0${creator.id}/delete`);
+  const { rows } = await H.db.query('SELECT id FROM participants WHERE id = $1', [creator.id]);
+  assert.equal(rows.length, 1);
+});

@@ -4,7 +4,7 @@ const db = require('../db');
 const config = require('../config');
 const { ValidationError } = require('./errors');
 
-const isId = (value) => /^\d{1,18}$/.test(String(value));
+const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
 
 function cleanCaption(value) {
   const caption = String(value ?? '').trim();

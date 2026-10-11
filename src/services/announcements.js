@@ -1,7 +1,7 @@
 const db = require('../db');
 const { ValidationError } = require('./errors');
 
-const isId = (value) => /^\d{1,18}$/.test(String(value));
+const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
 
 function clean(input) {
   const title = String(input.title ?? '').trim();

@@ -5,7 +5,7 @@ const { ValidationError } = require('./errors');
 const { cleanName } = require('./participants');
 
 const STATUSES = ['ready', 'live', 'closed'];
-const isId = (value) => /^\d{1,18}$/.test(String(value));
+const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
 
 function parseRoundNo(value) {
   const n = Number(value);
