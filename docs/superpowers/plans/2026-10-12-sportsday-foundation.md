@@ -23,6 +23,8 @@
 - 실시간 갱신(폴링, SSE, 소켓) 없음. 화면은 접속·새로고침 시점의 상태를 보여준다
 - 상태 변경은 모두 POST
 - 사용자에게 보이는 문구는 모두 한국어
+- 디자인은 `docs/design/mockup.html`의 합의안을 따른다(제목 Jua, 본문 Noto Sans KR, 배경 `#FFF8EE`, 주황 `#FF8A3D`, 하늘 `#3FB6F0`, 형광펜 `#FFE66B`). 터치 영역 44px 이상
+- 참가자 분류는 2단계에서 "그룹으로만 묶기"로 한다. 1단계에는 성별·덩치·운동능력 입력이 없다
 - 커밋 메시지 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
 
 ## Review Focus
@@ -130,7 +132,7 @@ SESSION_SECRET=CHANGE_ME_TO_A_LONG_RANDOM_STRING
 ADMIN_PASSWORD=CHANGE_ME
 ```
 
-`.env`는 `.env.example`을 복사해 실제 DB 비밀번호(사용자가 `CREATE ROLE`에서 정한 값)와 임의의 `SESSION_SECRET`(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`), `ADMIN_PASSWORD`를 채운다. DB 비밀번호를 모르면 사용자에게 묻는다.
+`.env`와 `.gitignore`는 이미 저장소 루트에 있다(원격 DB `bytebard.cloud:15432` 접속 정보 포함). `.env`는 덮어쓰거나 커밋하지 않는다. `.gitignore`가 위 내용과 같은지만 확인한다.
 
 ```bash
 mkdir -p src/public/uploads && touch src/public/uploads/.gitkeep
@@ -417,9 +419,6 @@ CREATE TABLE participants (
   event_id bigint NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name text NOT NULL,
   pin_hash text NOT NULL,
-  gender text CHECK (gender IN ('M', 'F')),
-  size_grade smallint CHECK (size_grade BETWEEN 1 AND 5),
-  ability_grade smallint CHECK (ability_grade BETWEEN 1 AND 5),
   group_id bigint REFERENCES groups(id) ON DELETE SET NULL,
   team_id bigint REFERENCES teams(id) ON DELETE SET NULL,
   attendance text NOT NULL DEFAULT 'present' CHECK (attendance IN ('present', 'absent')),
@@ -779,7 +778,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: Task 1 `db`, Task 2 `codes`, `pins`, `ValidationError`
-- Produces(`participants`): `cleanName(v) -> string`, `join(event, {name, pin, authCode}) -> Promise<row>`, `listParticipants(eventId) -> Promise<row[]>`, `getParticipant(eventId, id) -> Promise<row|null>`, `updateParticipant(eventId, id, {gender, sizeGrade, abilityGrade, attendance}) -> Promise<row|null>`, `deleteParticipant(eventId, id) -> Promise<boolean>`, `resetPin(eventId, id, pin) -> Promise<boolean>`, 상수 `MISMATCH`
+- Produces(`participants`): `cleanName(v) -> string`, `join(event, {name, pin, authCode}) -> Promise<row>`, `listParticipants(eventId) -> Promise<row[]>`, `getParticipant(eventId, id) -> Promise<row|null>`, `setAttendance(eventId, id, attendance: 'present'|'absent') -> Promise<row|null>`, `deleteParticipant(eventId, id) -> Promise<boolean>`, `resetPin(eventId, id, pin) -> Promise<boolean>`, 상수 `MISMATCH`
 - Produces(`events`): `createEvent(input) -> Promise<{event, participant}>`, `getEventBySlug(slug)`, `getEventById(id) -> Promise<row|null>`, `listEvents() -> Promise<(row & {participant_count:number})[]>`, `updateEvent(id, input) -> Promise<row|null>`, `verifyCreatorPin(event, pin) -> Promise<boolean>`, `setCreatorPin(id, pin) -> Promise<boolean>`, `deleteEvent(id) -> Promise<string[]|null>`(삭제된 시간표 파일명, 없으면 null)
 - 모든 id는 pg bigint이므로 문자열이다. 비교할 때 `String()`을 쓴다
 
@@ -933,29 +932,20 @@ test('종료된 운동회는 신규 입장만 막는다', async () => {
   await assert.rejects(participants.join(closed, { name: '새사람', pin: '1234', authCode: event.auth_code }), isVE(/종료/));
 });
 
-test('참가자 정보를 수정하고 검증한다', async () => {
+test('출석 상태를 바꾸고 잘못된 값은 거부한다', async () => {
   const { event, participant } = await H.makeEvent();
-  const updated = await participants.updateParticipant(event.id, participant.id, {
-    gender: 'F', sizeGrade: '3', abilityGrade: '5', attendance: 'absent',
-  });
-  assert.equal(updated.gender, 'F');
-  assert.equal(updated.size_grade, 3);
-  assert.equal(updated.ability_grade, 5);
-  assert.equal(updated.attendance, 'absent');
-  const cleared = await participants.updateParticipant(event.id, participant.id, {
-    gender: '', sizeGrade: '', abilityGrade: '', attendance: 'present',
-  });
-  assert.equal(cleared.gender, null);
-  assert.equal(cleared.size_grade, null);
-  await assert.rejects(participants.updateParticipant(event.id, participant.id, { gender: 'X', attendance: 'present' }), ValidationError);
-  await assert.rejects(participants.updateParticipant(event.id, participant.id, { sizeGrade: '0', attendance: 'present' }), ValidationError);
-  await assert.rejects(participants.updateParticipant(event.id, participant.id, { attendance: 'gone' }), ValidationError);
+  const absent = await participants.setAttendance(event.id, participant.id, 'absent');
+  assert.equal(absent.attendance, 'absent');
+  const present = await participants.setAttendance(event.id, participant.id, 'present');
+  assert.equal(present.attendance, 'present');
+  await assert.rejects(participants.setAttendance(event.id, participant.id, 'gone'), ValidationError);
+  await assert.rejects(participants.setAttendance(event.id, participant.id, undefined), ValidationError);
 });
 
 test('다른 운동회의 참가자는 수정·삭제·PIN 재설정되지 않는다', async () => {
   const { event: e1 } = await H.makeEvent();
   const { participant: other } = await H.makeEvent({ roundNo: '4' });
-  assert.equal(await participants.updateParticipant(e1.id, other.id, { attendance: 'absent' }), null);
+  assert.equal(await participants.setAttendance(e1.id, other.id, 'absent'), null);
   assert.equal(await participants.deleteParticipant(e1.id, other.id), false);
   assert.equal(await participants.resetPin(e1.id, other.id, '9999'), false);
   assert.equal(await participants.getParticipant(e1.id, other.id), null);
@@ -991,7 +981,6 @@ const { hashPin, comparePin } = require('./pins');
 const { ValidationError } = require('./errors');
 
 const MISMATCH = '이미 사용 중인 이름이거나 PIN이 틀렸습니다';
-const GENDERS = ['M', 'F'];
 const ATTENDANCE = ['present', 'absent'];
 
 const isId = (value) => /^\d+$/.test(String(value));
@@ -1001,13 +990,6 @@ function cleanName(value) {
   const length = Array.from(name).length;
   if (length < 1 || length > 20) throw new ValidationError('이름은 1~20자로 입력해 주세요');
   return name;
-}
-
-function parseGrade(value, label) {
-  if (value === undefined || value === null || value === '') return null;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < 1 || n > 5) throw new ValidationError(`${label} 등급은 1~5 사이여야 합니다`);
-  return n;
 }
 
 async function findByName(eventId, name) {
@@ -1053,18 +1035,13 @@ async function getParticipant(eventId, id) {
   return rows[0] || null;
 }
 
-async function updateParticipant(eventId, id, input) {
-  const gender = input.gender ? String(input.gender) : null;
-  if (gender && !GENDERS.includes(gender)) throw new ValidationError('성별 값이 올바르지 않습니다');
-  const sizeGrade = parseGrade(input.sizeGrade, '덩치');
-  const abilityGrade = parseGrade(input.abilityGrade, '운동능력');
-  const attendance = String(input.attendance ?? 'present');
-  if (!ATTENDANCE.includes(attendance)) throw new ValidationError('출석 상태 값이 올바르지 않습니다');
+async function setAttendance(eventId, id, attendance) {
+  const value = String(attendance ?? '');
+  if (!ATTENDANCE.includes(value)) throw new ValidationError('출석 상태 값이 올바르지 않습니다');
   if (!isId(id)) return null;
   const { rows } = await db.query(
-    `UPDATE participants SET gender = $3, size_grade = $4, ability_grade = $5, attendance = $6
-     WHERE event_id = $1 AND id = $2 RETURNING *`,
-    [eventId, id, gender, sizeGrade, abilityGrade, attendance],
+    'UPDATE participants SET attendance = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
+    [eventId, id, value],
   );
   return rows[0] || null;
 }
@@ -1086,7 +1063,7 @@ async function resetPin(eventId, id, pin) {
 }
 
 module.exports = {
-  MISMATCH, cleanName, join, listParticipants, getParticipant, updateParticipant, deleteParticipant, resetPin,
+  MISMATCH, cleanName, join, listParticipants, getParticipant, setAttendance, deleteParticipant, resetPin,
 };
 ```
 
@@ -1525,7 +1502,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/app.js`, `src/server.js`, `src/middleware/locals.js`, `src/middleware/auth.js`, `src/routes/helpers.js`, `src/routes/public.js`, `src/routes/participant.js`
-- Create: `src/views/layout.ejs`, `src/views/error.ejs`, `src/views/partials/alert.ejs`, `src/views/public/home.ejs`, `src/views/public/new-event.ejs`, `src/views/public/join.ejs`, `src/views/participant/home.ejs`, `src/views/participant/announcement.ejs`, `src/public/css/app.css`
+- Create: `src/views/layout.ejs`, `src/views/error.ejs`, `src/views/partials/alert.ejs`, `src/views/partials/sticker.ejs`, `src/views/partials/topbar.ejs`, `src/views/public/home.ejs`, `src/views/public/new-event.ejs`, `src/views/public/join.ejs`, `src/views/participant/home.ejs`, `src/views/participant/announcement.ejs`, `src/public/css/app.css`
 - Test: `tests/public.routes.test.js`, `tests/participant.routes.test.js`
 
 **Interfaces:**
@@ -1992,6 +1969,8 @@ createApp().listen(config.port, () => {
 
 - [ ] **Step 4: 뷰와 스타일 작성**
 
+디자인 기준은 `docs/design/mockup.html`이다. 아래 코드를 그대로 쓰고, 다 만든 뒤 `npm run dev`로 띄워 목업과 비교한다.
+
 `src/views/layout.ejs`
 ```ejs
 <!doctype html>
@@ -2002,7 +1981,7 @@ createApp().listen(config.port, () => {
   <title><%= title %></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body class="<%= wide ? 'wide' : '' %>">
@@ -2028,24 +2007,19 @@ createApp().listen(config.port, () => {
 
 `src/views/public/home.ejs`
 ```ejs
-<header class="hero">
-  <h1 class="title">명량운동회</h1>
-  <p class="sub">우리끼리 매년 여는 운동회</p>
+<header class="hero" style="padding-top: 48px">
+  <h1 class="sticker" aria-label="명량운동회"><span class="back" aria-hidden="true">명량운동회</span><span class="front" aria-hidden="true">명량운동회</span></h1>
+  <p class="sub">우리끼리 매년 여는 진짜 운동회</p>
 </header>
 <%- include('../partials/alert') %>
-<section class="card">
-  <h2>운동회 입장</h2>
-  <form method="get" action="/go" class="stack">
-    <label>초대 링크 또는 운동회 코드
-      <input name="target" required placeholder="초대 링크를 붙여 넣으세요">
-    </label>
-    <button class="btn">입장하러 가기</button>
-  </form>
-</section>
-<section class="card">
-  <h2>새 운동회</h2>
-  <a class="btn btn-primary" href="/events/new">운동회 만들기</a>
-</section>
+<form method="get" action="/go" class="card stack" style="margin-top: 32px">
+  <label>초대 링크 또는 운동회 코드
+    <input name="target" required placeholder="받은 링크를 붙여 넣으세요">
+  </label>
+  <button class="btn btn-primary">입장하기</button>
+</form>
+<a class="btn btn-block" href="/events/new">운동회 만들기</a>
+<p class="hint center" style="margin-top: 24px">운동회를 만든 사람이 보낸 초대 링크로 바로 들어올 수도 있어요.</p>
 ```
 
 `src/views/public/new-event.ejs`
@@ -2086,50 +2060,47 @@ createApp().listen(config.port, () => {
 
 `src/views/public/join.ejs`
 ```ejs
-<header class="hero">
-  <p class="sub">제 <%= event.round_no %>회</p>
-  <h1 class="title"><%= event.title %></h1>
-  <% if (event.event_date) { %><p class="sub"><%= fmtDate(event.event_date) %></p><% } %>
+<header class="hero" style="padding-top: 24px">
+  <%- include('../partials/sticker') %>
+  <% if (event.event_date) { %><p class="sub"><span class="marker">집합 일시</span> <%= fmtDate(event.event_date) %></p><% } %>
 </header>
 <%- include('../partials/alert') %>
-<form method="post" action="<%= base %>/join" class="card stack">
+<form method="post" action="<%= base %>/join" class="card ink stack">
+  <h2>참가자 입장</h2>
   <label>이름
     <input name="name" maxlength="20" required value="<%= values.name %>">
   </label>
   <label>개인 PIN (숫자 4자리)
     <input name="pin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" required>
+    <span class="hint">처음 입장하면 지금 입력한 PIN이 내 PIN이 돼요. 다시 들어올 때 같은 이름과 PIN을 입력하세요.</span>
   </label>
-  <p class="hint">처음 입장하면 지금 입력한 PIN이 내 PIN이 됩니다. 다시 들어올 때 같은 이름과 PIN을 입력하세요.</p>
   <label>인증코드
     <input name="authCode" required autocapitalize="characters" value="<%= values.authCode %>">
   </label>
-  <button class="btn btn-primary">입장</button>
+  <button class="btn btn-primary">운동회 입장하기</button>
 </form>
 ```
 
 `src/views/participant/home.ejs`
 ```ejs
-<header class="hero">
-  <p class="sub">제 <%= event.round_no %>회</p>
-  <h1 class="title"><%= event.title %></h1>
-  <% if (event.event_date) { %><p class="sub"><%= fmtDate(event.event_date) %></p><% } %>
-</header>
-<div class="me">
-  <span><strong><%= participant.name %></strong>님 환영합니다</span>
-  <% if (isCreator) { %><a class="btn btn-small" href="<%= base %>/manage">관리 페이지</a><% } %>
-</div>
-<% if (event.meet_info) { %>
-<section class="card">
-  <h2>집합 안내</h2>
-  <p class="pre"><%= event.meet_info %></p>
+<%- include('../partials/topbar') %>
+<header class="hero"><%- include('../partials/sticker', { compact: true }) %></header>
+<section class="card ink meet">
+  <span class="marker">집합 일시</span>
+  <p class="when tnum"><%= event.event_date ? fmtDate(event.event_date) : '날짜 미정' %></p>
+  <% if (event.meet_info) { %><p class="where pre"><%= event.meet_info %></p><% } %>
 </section>
-<% } %>
+<div class="bib" aria-label="내 배번표">
+  <div class="meta"><%= event.title %> 참가자</div>
+  <div class="name"><%= participant.name %></div>
+  <span class="badge">팀 배정 전</span>
+</div>
 <section class="card">
   <h2>공지</h2>
   <% if (announcements.length === 0) { %><p class="muted">아직 공지가 없습니다.</p><% } %>
   <ul class="list">
     <% announcements.forEach((a) => { %>
-    <li><a href="<%= base %>/announcements/<%= a.id %>"><% if (a.pinned) { %><span class="badge">고정</span><% } %><%= a.title %></a></li>
+    <li><a href="<%= base %>/announcements/<%= a.id %>"><% if (a.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= a.title %></a></li>
     <% }) %>
   </ul>
 </section>
@@ -2141,86 +2112,161 @@ createApp().listen(config.port, () => {
     <a href="/uploads/<%= s.file_name %>" target="_blank" rel="noopener">
       <img src="/uploads/<%= s.file_name %>" alt="<%= s.caption || '시간표' %>" loading="lazy">
     </a>
-    <% if (s.caption) { %><figcaption><%= s.caption %></figcaption><% } %>
+    <figcaption class="row" style="justify-content: space-between">
+      <span><%= s.caption %></span>
+      <a class="btn btn-small" href="/uploads/<%= s.file_name %>" target="_blank" rel="noopener">크게 보기</a>
+    </figcaption>
   </figure>
   <% }) %>
 </section>
-<form method="post" action="<%= base %>/logout" class="center">
-  <button class="btn btn-ghost">이 기기에서 나가기</button>
-</form>
 ```
 
 `src/views/participant/announcement.ejs`
 ```ejs
-<p><a href="<%= base %>/home">홈으로</a></p>
+<%- include('../partials/topbar') %>
+<p><a class="btn btn-small" href="<%= base %>/home">홈으로</a></p>
 <article class="card">
-  <h1 class="headline"><% if (announcement.pinned) { %><span class="badge">고정</span><% } %><%= announcement.title %></h1>
-  <p class="muted"><%= fmtDateTime(announcement.created_at) %></p>
-  <div class="pre"><%= announcement.body %></div>
+  <h1 class="headline"><% if (announcement.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= announcement.title %></h1>
+  <p class="muted tnum"><%= fmtDateTime(announcement.created_at) %></p>
+  <div class="pre" style="margin-top: 12px"><%= announcement.body %></div>
 </article>
+```
+
+`src/views/partials/sticker.ejs` (운동회 제목 스티커. `제 n회` 부분은 주황색)
+```ejs
+<% const fullTitle = event.title; const prefix = '제 ' + event.round_no + '회'; const hasPrefix = fullTitle.startsWith(prefix); %>
+<h1 class="sticker<%= locals.compact ? ' compact' : '' %>" aria-label="<%= fullTitle %>">
+  <span class="back" aria-hidden="true"><%= fullTitle %></span>
+  <span class="front" aria-hidden="true"><% if (hasPrefix) { %><span class="round"><%= prefix %></span><%= fullTitle.slice(prefix.length) %><% } else { %><%= fullTitle %><% } %></span>
+</h1>
+```
+
+`src/views/partials/topbar.ejs` (참가자 화면 상단 바. 이름 칩을 누르면 나가기 버튼이 펼쳐진다)
+```ejs
+<header class="topbar">
+  <a class="brand" href="<%= base %>/home"><%= event.title %></a>
+  <div class="row" style="flex-wrap: nowrap">
+    <% if (isCreator) { %><a class="btn btn-small" href="<%= base %>/manage">관리 페이지</a><% } %>
+    <details class="me">
+      <summary class="chip"><%= participant.name %> ▾</summary>
+      <div class="menu">
+        <form method="post" action="<%= base %>/logout"><button class="btn btn-small btn-danger">이 기기에서 나가기</button></form>
+      </div>
+    </details>
+  </div>
+</header>
 ```
 
 `src/public/css/app.css`
 ```css
 :root {
-  --orange: #ff8a3d;
-  --sky: #3fb6f0;
-  --ink: #1f2430;
-  --muted: #6b7280;
-  --line: #e7e9ee;
-  --bg: #fff7f0;
-  --card: #ffffff;
-  --danger: #e74c3c;
+  --paper: #FFF8EE; --surface: #FFFFFF; --ink: #24211E; --muted: #686058; --line: #DED5CB;
+  --orange: #FF8A3D; --sky: #3FB6F0; --marker: #FFE66B; --rest: #E7F5FD; --focus: #175CD3; --danger: #B42318;
+  --team-red: #C93636; --team-blue: #245BC7; --team-green: #237448; --team-yellow: #F4D34E;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Noto Sans KR', system-ui, sans-serif; line-height: 1.6; }
-.container { max-width: 480px; margin: 0 auto; padding: 16px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; overflow-wrap: break-word; }
+body:not(.wide) { padding-bottom: 8px; }
+body:not(.wide)::after { content: ''; position: fixed; left: 0; right: 0; bottom: 0; height: 8px; background: var(--orange); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+a { color: inherit; }
+.container { max-width: 480px; margin: 0 auto; padding: 20px 16px 32px; }
 body.wide .container { max-width: 960px; }
-.title { font-family: 'Black Han Sans', sans-serif; font-weight: 400; font-size: 2rem; margin: .2em 0; }
-.headline { font-size: 1.3rem; margin: 0 0 4px; }
-.hero { text-align: center; padding: 24px 0 8px; }
-.hero .title { color: var(--orange); }
-.sub { color: var(--muted); margin: 0; }
-.card { background: var(--card); border-radius: 16px; padding: 16px; margin: 12px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, .06); }
-.card h2 { margin: 0 0 8px; font-size: 1.1rem; border-left: 4px solid var(--sky); padding-left: 8px; }
-.stack { display: flex; flex-direction: column; gap: 12px; }
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: .95rem; }
-label.check { flex-direction: row; align-items: center; }
-input, select, textarea { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; width: 100%; }
-input[type=checkbox] { width: auto; }
-.btn { display: inline-block; border: 0; border-radius: 999px; padding: 10px 18px; font: inherit; font-weight: 700; background: var(--sky); color: #fff; text-decoration: none; cursor: pointer; text-align: center; }
-.btn:disabled { opacity: .4; cursor: default; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* 제목 */
+.title { font: 400 28px/1.2 'Jua', sans-serif; margin: 8px 0 12px; }
+.sticker { display: inline-grid; margin: 0; font: 400 clamp(34px, 9vw, 44px)/1.15 'Jua', sans-serif; letter-spacing: -.01em; }
+.sticker.compact { font-size: clamp(28px, 8.5vw, 34px); line-height: 1.2; letter-spacing: -.02em; }
+.sticker > span { grid-area: 1 / 1; }
+.sticker .back { color: var(--ink); -webkit-text-stroke: 7px var(--ink); text-shadow: 2px 3px 0 var(--ink); }
+.sticker .front { color: #fff; }
+.sticker .round { color: var(--orange); }
+.hero { text-align: center; padding: 12px 0 4px; }
+.sub { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+.headline { font: 700 22px/1.35 'Noto Sans KR', sans-serif; margin: 0 0 4px; }
+.marker { display: inline-block; padding: 0 4px; font-weight: 700; background: linear-gradient(transparent 35%, var(--marker) 35%, var(--marker) 90%, transparent 90%); }
+
+/* 상단 바 */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; margin: -20px -16px 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.topbar .brand { min-width: 0; font: 400 18px/1.2 'Jua', sans-serif; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); font: 500 14px 'Noto Sans KR', sans-serif; white-space: nowrap; cursor: pointer; }
+details.me { position: relative; }
+details.me summary { list-style: none; }
+details.me summary::-webkit-details-marker { display: none; }
+details.me .menu { position: absolute; right: 0; top: 50px; z-index: 5; padding: 8px; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 3px 4px 0 var(--ink); }
+
+/* 카드 */
+.card { margin: 12px 0; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+body.wide .card { padding: 20px; }
+.card.ink { border: 2px solid var(--ink); }
+.card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font: 400 22px/1.3 'Jua', sans-serif; }
+.card h2::before { content: ''; flex: none; width: 4px; height: 20px; border-radius: 2px; background: var(--sky); }
+.meet .when { margin: 8px 0 2px; font: 700 24px/1.3 'Noto Sans KR', sans-serif; }
+.meet .where { margin: 0; font-size: 18px; }
+
+/* 배번표 */
+.bib { position: relative; min-height: 136px; margin: 12px 0; padding: 22px 16px 16px; overflow: hidden; background: var(--surface); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 4px 0 var(--ink); }
+.bib::before, .bib::after { content: ''; position: absolute; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); }
+.bib::before { left: 12px; }
+.bib::after { right: 12px; }
+.bib .meta { color: var(--muted); font-size: 13px; }
+.bib .name { margin: 2px 0 8px; font: 700 28px/1.3 'Noto Sans KR', sans-serif; }
+
+/* 폼 */
+.stack { display: grid; gap: 20px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+label { display: grid; gap: 6px; font: 500 14px/1.4 'Noto Sans KR', sans-serif; }
+label.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+input, select, textarea { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--muted); border-radius: 10px; background: var(--surface); color: var(--ink); font: 400 16px 'Noto Sans KR', sans-serif; }
+input[type=checkbox] { width: 22px; height: 22px; min-height: 22px; accent-color: var(--orange); }
+input[type=file] { padding: 10px; }
+
+/* 버튼 */
+.btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border: 2px solid var(--ink); border-radius: 12px; background: var(--surface); color: var(--ink); font: 700 16px 'Noto Sans KR', sans-serif; text-decoration: none; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform 120ms, box-shadow 120ms; }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.btn:disabled { opacity: .4; cursor: default; transform: none; }
 .btn-primary { background: var(--orange); }
-.btn-ghost { background: transparent; color: var(--muted); }
-.btn-danger { background: var(--danger); }
-.btn-small { padding: 4px 12px; font-size: .85rem; }
-.alert { padding: 10px 12px; border-radius: 10px; margin: 12px 0; }
-.alert-error { background: #fdecea; color: #b3261e; }
-.alert-ok { background: #e8f6ee; color: #1e7a44; }
-.hint, .muted { color: var(--muted); font-size: .9rem; margin: 0; }
-.pre { white-space: pre-wrap; word-break: break-word; }
-.list { list-style: none; margin: 0; padding: 0; }
-.list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
-.list li:last-child { border-bottom: 0; }
-.list a { color: inherit; text-decoration: none; }
-.badge { display: inline-block; background: var(--orange); color: #fff; border-radius: 6px; font-size: .75rem; padding: 0 6px; margin-right: 6px; vertical-align: middle; }
-.schedule { margin: 0 0 16px; }
-.schedule img { width: 100%; border-radius: 12px; display: block; }
-.schedule figcaption { color: var(--muted); font-size: .9rem; margin-top: 4px; }
-.nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-.nav a { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; color: var(--ink); text-decoration: none; font-size: .9rem; }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; white-space: nowrap; }
-td input, td select { padding: 6px 8px; width: auto; }
-.copy { word-break: break-all; background: #f3f4f6; border-radius: 10px; padding: 10px; font-family: ui-monospace, monospace; font-size: .85rem; margin: 0; }
+.btn-block, form.stack > .btn { width: 100%; }
+.btn-small { min-height: 44px; padding: 8px 14px; border-width: 1.5px; font-size: 14px; box-shadow: none; }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); box-shadow: none; }
+
+/* 알림과 보조 글 */
+.alert { margin: 12px 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+.alert-error { background: #FDECEA; color: var(--danger); border: 1px solid #F4C7C3; }
+.alert-ok { background: #E8F6EE; color: #1E6B41; border: 1px solid #BFE3CD; }
+.hint, .muted { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.pre { white-space: pre-wrap; }
 .center { text-align: center; }
-.me { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.stats { display: flex; gap: 12px; }
-.stats div { flex: 1; text-align: center; }
-.stats strong { display: block; font-size: 1.6rem; color: var(--orange); }
-hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+/* 목록과 배지 */
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.list li:last-child { border-bottom: 0; }
+.list a { flex: 1; text-decoration: none; }
+.badge { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; padding: 4px 10px; border-radius: 999px; background: #F2E8DD; font: 700 13px/1.2 'Noto Sans KR', sans-serif; vertical-align: middle; }
+.badge-pin { background: var(--orange); }
+
+/* 시간표 */
+.schedule { margin: 0 0 16px; }
+.schedule img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 12px; }
+.schedule figcaption { margin-top: 6px; color: var(--muted); font-size: 13px; }
+
+/* 관리 화면 */
+.nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 14px; text-decoration: none; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
+.stats div { padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; color: var(--muted); font-size: 13px; }
+.stats strong { display: block; color: var(--ink); font: 400 30px/1.1 'Jua', sans-serif; }
+.copy { margin: 0; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: #F7F1EA; font: 400 13px/1.5 ui-monospace, monospace; word-break: break-all; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { padding: 12px; background: var(--sky); color: var(--ink); text-align: left; white-space: nowrap; }
+td { height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+td input, td select { width: auto; min-height: 40px; padding: 6px 10px; font-size: 14px; }
+hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 ```
 
 - [ ] **Step 5: 테스트 통과 확인**
@@ -2322,22 +2368,21 @@ test('운동회 정보가 잘못되면 400과 입력값 유지', async () => {
   assert.match(res.text, /바뀐 안내/);
 });
 
-test('참가자 정보를 수정하고 잘못된 값은 400', async () => {
+test('참가자 출석 상태를 바꾸고 잘못된 값은 400', async () => {
   const { event } = await H.makeEvent();
   await H.joinAgent(event, { name: '철수', pin: '2222' });
   const agent = await H.creatorAgent(event);
   const id = await participantId(event.id, '철수');
   await agent.post(`/e/${event.slug}/manage/participants/${id}`).type('form')
-    .send({ gender: 'M', sizeGrade: '4', abilityGrade: '2', attendance: 'absent' }).expect(302);
-  const { rows } = await H.db.query('SELECT * FROM participants WHERE id = $1', [id]);
-  assert.equal(rows[0].gender, 'M');
-  assert.equal(rows[0].size_grade, 4);
+    .send({ attendance: 'absent' }).expect(302);
+  const { rows } = await H.db.query('SELECT attendance FROM participants WHERE id = $1', [id]);
   assert.equal(rows[0].attendance, 'absent');
   const page = await agent.get(`/e/${event.slug}/manage/participants`).expect(200);
   assert.match(page.text, /철수/);
+  assert.doesNotMatch(page.text, /덩치|운동능력|성별/);
   const bad = await agent.post(`/e/${event.slug}/manage/participants/${id}`).type('form')
-    .send({ sizeGrade: '9', attendance: 'present' }).expect(400);
-  assert.match(bad.text, /1~5/);
+    .send({ attendance: 'gone' }).expect(400);
+  assert.match(bad.text, /출석 상태 값이 올바르지 않습니다/);
 });
 
 test('참가자를 삭제할 수 있지만 본인은 삭제할 수 없다', async () => {
@@ -2452,7 +2497,7 @@ router.get('/participants', (req, res) => renderParticipants(req, res));
 
 router.post('/participants/:id', async (req, res) => {
   try {
-    await participants.updateParticipant(req.event.id, req.params.id, req.body);
+    await participants.setAttendance(req.event.id, req.params.id, req.body.attendance);
     res.redirect(manage(res, '/participants'));
   } catch (err) {
     if (!(err instanceof ValidationError)) throw err;
@@ -2524,7 +2569,7 @@ router.use('/manage', require('./creator'));
 ```ejs
 <h1 class="title"><%= event.title %></h1>
 <%- include('../partials/creator-nav') %>
-<section class="card stats">
+<section class="stats">
   <div><strong><%= total %></strong>참가자</div>
   <div><strong><%= present %></strong>참석</div>
   <div><strong><%= statusLabel(event.status) %></strong>상태</div>
@@ -2565,51 +2610,34 @@ router.use('/manage', require('./creator'));
 <h1 class="title">참가자 관리</h1>
 <%- include('../partials/creator-nav') %>
 <%- include('../partials/alert') %>
-<p class="muted">총 <%= list.length %>명</p>
-<div class="card table-wrap">
+<p class="muted">총 <%= list.length %>명 · 참석 <%= list.filter((p) => p.attendance === 'present').length %>명</p>
+<div class="table-wrap" style="margin-top:12px">
   <table>
-    <thead><tr><th>이름</th><th>성별</th><th>덩치</th><th>운동능력</th><th>출석</th><th></th></tr></thead>
+    <thead><tr><th>이름</th><th>입장일</th><th>출석</th><th></th></tr></thead>
     <tbody>
       <% list.forEach((p) => { const f = 'p-' + p.id; %>
       <tr>
-        <td><%= p.name %></td>
+        <td><strong><%= p.name %></strong></td>
+        <td class="tnum"><%= fmtDateTime(p.created_at) %></td>
         <td>
-          <select name="gender" form="<%= f %>">
-            <option value="">-</option>
-            <option value="M" <%= p.gender === 'M' ? 'selected' : '' %>>남</option>
-            <option value="F" <%= p.gender === 'F' ? 'selected' : '' %>>여</option>
-          </select>
-        </td>
-        <td>
-          <select name="sizeGrade" form="<%= f %>">
-            <option value="">-</option>
-            <% for (let g = 1; g <= 5; g++) { %><option value="<%= g %>" <%= p.size_grade === g ? 'selected' : '' %>><%= g %></option><% } %>
-          </select>
-        </td>
-        <td>
-          <select name="abilityGrade" form="<%= f %>">
-            <option value="">-</option>
-            <% for (let g = 1; g <= 5; g++) { %><option value="<%= g %>" <%= p.ability_grade === g ? 'selected' : '' %>><%= g %></option><% } %>
-          </select>
-        </td>
-        <td>
-          <select name="attendance" form="<%= f %>">
+          <select name="attendance" form="<%= f %>" aria-label="<%= p.name %> 출석 상태">
             <option value="present" <%= p.attendance === 'present' ? 'selected' : '' %>>참석</option>
             <option value="absent" <%= p.attendance === 'absent' ? 'selected' : '' %>>미출석</option>
           </select>
         </td>
-        <td class="row">
-          <form id="<%= f %>" method="post" action="<%= base %>/manage/participants/<%= p.id %>"><button class="btn btn-small">저장</button></form>
-          <form method="post" action="<%= base %>/manage/participants/<%= p.id %>/delete" data-msg="<%= p.name %>님을 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
-            <button class="btn btn-small btn-danger">삭제</button>
-          </form>
+        <td>
+          <div class="row">
+            <form id="<%= f %>" method="post" action="<%= base %>/manage/participants/<%= p.id %>"><button class="btn btn-small">저장</button></form>
+            <form method="post" action="<%= base %>/manage/participants/<%= p.id %>/delete" data-msg="<%= p.name %>님을 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
+              <button class="btn btn-small btn-danger">삭제</button>
+            </form>
+          </div>
         </td>
       </tr>
       <% }) %>
     </tbody>
   </table>
 </div>
-<p class="hint">덩치와 운동능력은 1(낮음)~5(높음)입니다. 팀 뽑기 그룹을 나눌 때 씁니다.</p>
 ```
 
 - [ ] **Step 5: 테스트 통과 확인**
@@ -2782,7 +2810,7 @@ router.post('/announcements/:id/delete', async (req, res) => {
   <ul class="list">
     <% list.forEach((a) => { %>
     <li class="row" style="justify-content: space-between">
-      <span><% if (a.pinned) { %><span class="badge">고정</span><% } %><%= a.title %> <small class="muted"><%= fmtDateTime(a.created_at) %></small></span>
+      <span><% if (a.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= a.title %> <small class="muted"><%= fmtDateTime(a.created_at) %></small></span>
       <span class="row">
         <a class="btn btn-small" href="<%= base %>/manage/announcements/<%= a.id %>/edit">수정</a>
         <form method="post" action="<%= base %>/manage/announcements/<%= a.id %>/delete" data-msg="공지를 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
