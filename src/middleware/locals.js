@@ -1,6 +1,6 @@
 const format = require('../services/format');
 
-function locals(req, res, next) {
+function applyLocals(req, res) {
   Object.assign(res.locals, {
     title: '명량운동회',
     wide: false,
@@ -14,7 +14,11 @@ function locals(req, res, next) {
     values: {},
     ...format,
   });
+}
+
+function locals(req, res, next) {
+  applyLocals(req, res);
   next();
 }
 
-module.exports = { locals };
+module.exports = { locals, applyLocals };

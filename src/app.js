@@ -5,7 +5,7 @@ const PgStore = require('connect-pg-simple')(session);
 const expressLayouts = require('express-ejs-layouts');
 const config = require('./config');
 const { pool } = require('./db');
-const { locals } = require('./middleware/locals');
+const { locals, applyLocals } = require('./middleware/locals');
 
 function createApp() {
   const app = express();
@@ -39,10 +39,15 @@ function createApp() {
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     console.error(err);
-    res.status(500).render('error', {
+    // locals 미들웨어 이전에 난 오류(본문 파싱 등)는 뷰 기본값이 없다
+    if (res.locals.wide === undefined) applyLocals(req, res);
+    const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+    res.status(status).render('error', {
       title: '오류',
-      status: 500,
-      message: config.isProd ? '서버 오류가 발생했습니다' : err.message,
+      status,
+      message: status < 500
+        ? '요청을 처리할 수 없습니다'
+        : config.isProd ? '서버 오류가 발생했습니다' : err.message,
     });
   });
 

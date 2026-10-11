@@ -16,7 +16,8 @@ router.get('/go', (req, res) => {
     const code = new URLSearchParams(link[2] || '').get('code');
     return res.redirect(`/e/${link[1]}${code ? `?code=${encodeURIComponent(code)}` : ''}`);
   }
-  if (/^[a-z0-9]{4,20}$/.test(raw)) return res.redirect(`/e/${raw}`);
+  const bare = raw.toLowerCase();
+  if (/^[a-z0-9]{4,20}$/.test(bare)) return res.redirect(`/e/${bare}`);
   res.status(400).render('public/home', { title: '명량운동회', error: '초대 링크 또는 운동회 코드를 확인해 주세요' });
 });
 

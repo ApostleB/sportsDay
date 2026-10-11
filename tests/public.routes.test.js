@@ -39,6 +39,18 @@ test('/go는 초대 링크나 코드로 운동회 입장 화면에 보낸다', a
   await app().get('/go').query({ target: '!!' }).expect(400);
 });
 
+test('/go는 대문자로 입력된 코드도 받아들인다', async () => {
+  const res = await app().get('/go').query({ target: ' ABCD2345 ' }).expect(302);
+  assert.equal(res.headers.location, '/e/abcd2345');
+});
+
+test('본문이 너무 크면 스택 대신 앱 오류 화면과 413을 보여준다', async () => {
+  const res = await app().post('/events').type('form')
+    .send({ ...H.EVENT_INPUT, meetInfo: 'a'.repeat(200000) }).expect(413);
+  assert.match(res.text, /처음으로/);
+  assert.doesNotMatch(res.text, /ReferenceError|at .*\.js/);
+});
+
 test('초대 링크의 인증코드가 입장 폼에 미리 채워진다', async () => {
   const { event } = await H.makeEvent();
   const res = await app().get(`/e/${event.slug}?code=${event.auth_code}`).expect(200);

@@ -15,7 +15,10 @@ test('홈에 일시, 집합 안내, 고정 우선 공지, 시간표 이미지가
   const res = await agent.get(`/e/${event.slug}/home`).expect(200);
   assert.match(res.text, /2026년 10월 10일 \(토\)/);
   assert.match(res.text, /이촌동 한강맨션 앞/);
-  assert.ok(res.text.indexOf('고정 공지') < res.text.indexOf('일반 공지'));
+  const pinnedAt = res.text.indexOf('고정 공지');
+  const normalAt = res.text.indexOf('일반 공지');
+  assert.ok(pinnedAt >= 0 && normalAt >= 0);
+  assert.ok(pinnedAt < normalAt);
   assert.match(res.text, /\/uploads\/abc\.png/);
   assert.match(res.text, /제3회 시간표/);
 });
