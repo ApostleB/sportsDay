@@ -40,7 +40,7 @@
 - 설정: `dotenv`
 - 테스트: Node 내장 `node:test` + `supertest`, 별도 테스트 DB
 - 개발 실행: `node --watch`
-- 실시간 반영: 클라이언트 주기적 폴링(10초)
+- 실시간 갱신 없음: 모든 화면은 접속하거나 새로고침할 때 최신 상태를 조회한다. 팀 뽑기 결과는 뽑기 요청의 응답으로 받고, 다른 사람의 결과와 마니또 오픈은 새로고침으로 확인한다
 
 ## 2. 디렉터리 구조
 
@@ -56,7 +56,7 @@ sportsDay/
       locals.js            현재 사용자 정보를 res.locals에 주입
     routes/
       public.js            메인, 운동회 생성, 초대 링크 입장
-      participant.js       참가자 홈, 공지, 시간표, 상태 폴링 API
+      participant.js       참가자 홈, 공지, 시간표
       creator.js           생성자 인증, 참가자·공지·시간표 관리
       admin.js             관리자 로그인과 관리 기능
     services/
@@ -73,7 +73,6 @@ sportsDay/
       error.ejs
     public/
       css/app.css
-      js/poll.js           주기적 폴링
       uploads/             업로드 이미지(git 제외)
   db/
     migrations/001_init.sql
@@ -181,7 +180,6 @@ req.session.events = {                         // 운동회별 입장 정보
 ### 참가자 (`/e/:slug/...`)
 - `GET /home`: 운동회 제목·일시·집합 안내, 고정 공지 우선 공지 목록, 시간표 이미지, 생성자이면 관리 페이지 버튼
 - `GET /announcements/:id`: 공지 상세
-- `GET /api/state`: `{ version }` JSON. version은 공지·시간표·운동회의 최신 갱신 시각을 합친 값. `poll.js`가 10초마다 호출하고 값이 바뀌면 페이지 상단에 "새 소식이 있습니다" 배너를 띄우고 누르면 새로고침
 - `POST /logout`: 이 운동회 세션 항목만 삭제
 
 ### 생성자 (`/e/:slug/manage/...`)
