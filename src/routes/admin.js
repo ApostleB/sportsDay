@@ -27,7 +27,8 @@ router.post('/login', async (req, res) => {
   res.redirect('/admin');
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  await regenerate(req);
   req.session.admin = false;
   res.redirect('/admin/login');
 });
@@ -58,9 +59,9 @@ async function renderDetail(req, res, { message = null, error = null, status = 2
   });
 }
 
-router.get('/events/:id', loadAdminEvent, (req, res) => {
-  renderDetail(req, res, { message: DONE_MESSAGES[req.query.done] || null });
-});
+router.get('/events/:id', loadAdminEvent, (req, res) => (
+  renderDetail(req, res, { message: DONE_MESSAGES[req.query.done] || null })
+));
 
 router.post('/events/:id/participants/:pid/pin', loadAdminEvent, async (req, res) => {
   try {
@@ -84,11 +85,15 @@ router.post('/events/:id/creator-pin', loadAdminEvent, async (req, res) => {
 });
 
 router.post('/events/:id/delete', loadAdminEvent, async (req, res) => {
-  if (String(req.body.confirm ?? '').trim() !== req.event.slug) {
+  if (String(req.body.confirm ?? '').trim().toLowerCase() !== req.event.slug) {
     return renderDetail(req, res, { error: '확인 문구가 운동회 코드와 다릅니다', status: 400 });
   }
   const files = await events.deleteEvent(req.event.id);
-  await Promise.all((files || []).map((f) => schedules.removeFile(f)));
+  const list = files || [];
+  const results = await Promise.allSettled(list.map((f) => schedules.removeFile(f)));
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') console.error('시간표 파일 삭제 실패:', list[i], result.reason);
+  });
   res.redirect('/admin');
 });
 

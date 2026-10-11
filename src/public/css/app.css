@@ -104,6 +104,7 @@ input[type=file] { padding: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { padding: 12px; background: var(--sky); color: var(--ink); text-align: left; white-space: nowrap; }
 td { height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+td a { display: inline-flex; align-items: center; min-height: 44px; }
 td input, td select { width: auto; min-height: 44px; padding: 6px 10px; font-size: 14px; }
 hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }

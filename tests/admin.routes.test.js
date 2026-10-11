@@ -81,7 +81,7 @@ test('삭제 확인 문구가 틀리면 400, 맞으면 운동회와 시간표 �
   await schedules.add(event.id, { fileName: 'admin-del.png', caption: '' });
   const admin = await H.adminAgent();
   await admin.post(`/admin/events/${event.id}/delete`).type('form').send({ confirm: 'wrong' }).expect(400);
-  await admin.post(`/admin/events/${event.id}/delete`).type('form').send({ confirm: event.slug }).expect(302);
+  await admin.post(`/admin/events/${event.id}/delete`).type('form').send({ confirm: ` ${event.slug.toUpperCase()} ` }).expect(302);
   await admin.get(`/admin/events/${event.id}`).expect(404);
   assert.equal(fs.existsSync(file), false);
 });
@@ -92,4 +92,20 @@ test('관리자 로그인 후에도 기존 운동회 입장 정보가 유지된�
   await agent.post('/admin/login').type('form').send({ password: 'admin-test-pw' }).expect(302);
   await agent.get(`/e/${event.slug}/home`).expect(200);
   await agent.get('/admin').expect(200);
+});
+
+test('상세 화면 렌더링 중 오류가 나면 500으로 응답한다', async () => {
+  const { event } = await H.makeEvent();
+  const admin = await H.adminAgent();
+  const participants = require('../src/services/participants');
+  const original = participants.listParticipants;
+  const origError = console.error;
+  participants.listParticipants = async () => { throw new Error('boom'); };
+  console.error = () => {};
+  try {
+    await admin.get(`/admin/events/${event.id}`).expect(500);
+  } finally {
+    participants.listParticipants = original;
+    console.error = origError;
+  }
 });
