@@ -11,10 +11,10 @@ router.get('/', (req, res) => {
 
 router.get('/go', (req, res) => {
   const raw = String(req.query.target ?? '').trim();
-  const link = raw.match(/\/e\/([a-z0-9]+)(\?[^#]*)?/);
+  const link = raw.match(/\/e\/([a-z0-9]+)(\?[^#]*)?/i);
   if (link) {
     const code = new URLSearchParams(link[2] || '').get('code');
-    return res.redirect(`/e/${link[1]}${code ? `?code=${encodeURIComponent(code)}` : ''}`);
+    return res.redirect(`/e/${link[1].toLowerCase()}${code ? `?code=${encodeURIComponent(code)}` : ''}`);
   }
   const bare = raw.toLowerCase();
   if (/^[a-z0-9]{4,20}$/.test(bare)) return res.redirect(`/e/${bare}`);

@@ -39,6 +39,11 @@ test('/go는 초대 링크나 코드로 운동회 입장 화면에 보낸다', a
   await app().get('/go').query({ target: '!!' }).expect(400);
 });
 
+test('/go는 대문자 슬러그가 든 초대 링크도 받아들이고 인증코드는 그대로 둔다', async () => {
+  const res = await app().get('/go').query({ target: 'https://example.com/e/ABCD2345?code=XY12ZZ' }).expect(302);
+  assert.equal(res.headers.location, '/e/abcd2345?code=XY12ZZ');
+});
+
 test('/go는 대문자로 입력된 코드도 받아들인다', async () => {
   const res = await app().get('/go').query({ target: ' ABCD2345 ' }).expect(302);
   assert.equal(res.headers.location, '/e/abcd2345');

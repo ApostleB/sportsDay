@@ -28,7 +28,8 @@ body.wide .container { max-width: 960px; }
 
 /* 상단 바 */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; margin: -20px -16px 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-.topbar .brand { display: flex; align-items: center; min-height: 44px; min-width: 0; font: 400 18px/1.2 'Jua', sans-serif; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .brand { display: flex; align-items: center; min-height: 44px; min-width: 0; font: 400 18px/1.2 'Jua', sans-serif; text-decoration: none; }
+.topbar .brand span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); font: 500 14px 'Noto Sans KR', sans-serif; white-space: nowrap; cursor: pointer; }
 details.me { position: relative; }
 details.me summary { list-style: none; }
