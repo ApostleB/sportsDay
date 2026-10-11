@@ -1,0 +1,37 @@
+<h1 class="title">시간표 관리</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/schedules" enctype="multipart/form-data" class="card stack">
+  <h2>시간표 올리기</h2>
+  <label>설명<input name="caption" maxlength="100" placeholder="예: 제3회 시간표"></label>
+  <label>이미지 <small class="muted">jpg, png, webp, gif / 5MB 이하</small>
+    <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
+  </label>
+  <button class="btn btn-primary">올리기</button>
+</form>
+<section class="card">
+  <h2>등록된 시간표</h2>
+  <% if (list.length === 0) { %><p class="muted">아직 시간표가 없습니다.</p><% } %>
+  <% list.forEach((s, i) => { %>
+  <figure class="schedule stack">
+    <img src="/uploads/<%= s.file_name %>" alt="<%= s.caption || '시간표' %>">
+    <form method="post" action="<%= base %>/manage/schedules/<%= s.id %>" class="row">
+      <input name="caption" maxlength="100" value="<%= s.caption %>" style="flex: 1">
+      <button class="btn btn-small">설명 저장</button>
+    </form>
+    <div class="row">
+      <form method="post" action="<%= base %>/manage/schedules/<%= s.id %>/move">
+        <input type="hidden" name="direction" value="up">
+        <button class="btn btn-small" <%= i === 0 ? 'disabled' : '' %>>위로</button>
+      </form>
+      <form method="post" action="<%= base %>/manage/schedules/<%= s.id %>/move">
+        <input type="hidden" name="direction" value="down">
+        <button class="btn btn-small" <%= i === list.length - 1 ? 'disabled' : '' %>>아래로</button>
+      </form>
+      <form method="post" action="<%= base %>/manage/schedules/<%= s.id %>/delete" data-msg="시간표를 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
+        <button class="btn btn-small btn-danger">삭제</button>
+      </form>
+    </div>
+  </figure>
+  <% }) %>
+</section>

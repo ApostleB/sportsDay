@@ -3,6 +3,8 @@ const events = require('../services/events');
 const participants = require('../services/participants');
 const { ValidationError } = require('../services/errors');
 const announcements = require('../services/announcements');
+const schedules = require('../services/schedules');
+const { scheduleUpload } = require('./upload');
 const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
 
@@ -127,6 +129,56 @@ router.post('/announcements/:id', async (req, res) => {
 router.post('/announcements/:id/delete', async (req, res) => {
   await announcements.remove(req.event.id, req.params.id);
   res.redirect(manage(res, '/announcements'));
+});
+
+async function renderSchedules(req, res, error = null, status = 200) {
+  const list = await schedules.list(req.event.id);
+  res.status(status).render('creator/schedules', { title: '시간표 관리', list, error });
+}
+
+router.get('/schedules', (req, res) => renderSchedules(req, res));
+
+router.post('/schedules', (req, res, next) => {
+  scheduleUpload.single('image')(req, res, async (uploadErr) => {
+    try {
+      if (uploadErr) {
+        if (uploadErr.code === 'LIMIT_FILE_SIZE') return await renderSchedules(req, res, '이미지는 5MB 이하만 올릴 수 있습니다', 400);
+        if (uploadErr instanceof ValidationError) return await renderSchedules(req, res, uploadErr.message, 400);
+        return next(uploadErr);
+      }
+      if (!req.file) return await renderSchedules(req, res, '이미지를 선택해 주세요', 400);
+      try {
+        await schedules.add(req.event.id, { fileName: req.file.filename, caption: req.body.caption });
+      } catch (err) {
+        await schedules.removeFile(req.file.filename);
+        if (err instanceof ValidationError) return await renderSchedules(req, res, err.message, 400);
+        throw err;
+      }
+      res.redirect(manage(res, '/schedules'));
+    } catch (err) {
+      next(err);
+    }
+  });
+});
+
+router.post('/schedules/:id', async (req, res) => {
+  try {
+    await schedules.updateCaption(req.event.id, req.params.id, req.body.caption);
+    res.redirect(manage(res, '/schedules'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderSchedules(req, res, err.message, 400);
+  }
+});
+
+router.post('/schedules/:id/move', async (req, res) => {
+  await schedules.move(req.event.id, req.params.id, req.body.direction === 'up' ? 'up' : 'down');
+  res.redirect(manage(res, '/schedules'));
+});
+
+router.post('/schedules/:id/delete', async (req, res) => {
+  await schedules.remove(req.event.id, req.params.id);
+  res.redirect(manage(res, '/schedules'));
 });
 
 module.exports = router;
