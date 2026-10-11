@@ -1,0 +1,21 @@
+<div class="row" style="justify-content: space-between">
+  <h1 class="title">플랫폼 관리</h1>
+  <form method="post" action="/admin/logout"><button class="btn btn-ghost">로그아웃</button></form>
+</div>
+<div class="card table-wrap">
+  <table>
+    <thead><tr><th>회차</th><th>제목</th><th>참가자</th><th>상태</th><th>생성일</th></tr></thead>
+    <tbody>
+      <% if (eventList.length === 0) { %><tr><td colspan="5" class="muted">운동회가 없습니다</td></tr><% } %>
+      <% eventList.forEach((e) => { %>
+      <tr>
+        <td><%= e.round_no %></td>
+        <td><a href="/admin/events/<%= e.id %>"><%= e.title %></a></td>
+        <td><%= e.participant_count %></td>
+        <td><%= statusLabel(e.status) %></td>
+        <td><%= fmtDateTime(e.created_at) %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

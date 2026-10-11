@@ -31,6 +31,7 @@ function createApp() {
   app.use(locals);
 
   app.use('/', require('./routes/public'));
+  app.use('/admin', require('./routes/admin'));
   app.use('/e/:slug', require('./routes/participant'));
 
   app.use((req, res) => {

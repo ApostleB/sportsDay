@@ -1,0 +1,95 @@
+const express = require('express');
+const events = require('../services/events');
+const participants = require('../services/participants');
+const schedules = require('../services/schedules');
+const { ValidationError } = require('../services/errors');
+const { checkAdminPassword, requireAdmin, notFound } = require('../middleware/auth');
+const { regenerate, inviteUrl } = require('./helpers');
+
+const router = express.Router();
+
+const DONE_MESSAGES = {
+  pin: '참가자 PIN을 재설정했습니다',
+  creator: '생성자 PIN을 재설정했습니다',
+};
+
+router.get('/login', (req, res) => {
+  if (req.session.admin) return res.redirect('/admin');
+  res.render('admin/login', { title: '관리자 로그인' });
+});
+
+router.post('/login', async (req, res) => {
+  if (!checkAdminPassword(req.body.password)) {
+    return res.status(401).render('admin/login', { title: '관리자 로그인', error: '정보가 일치하지 않습니다' });
+  }
+  await regenerate(req);
+  req.session.admin = true;
+  res.redirect('/admin');
+});
+
+router.post('/logout', (req, res) => {
+  req.session.admin = false;
+  res.redirect('/admin/login');
+});
+
+router.use(requireAdmin);
+
+router.get('/', async (req, res) => {
+  res.render('admin/index', { title: '플랫폼 관리', wide: true, eventList: await events.listEvents() });
+});
+
+async function loadAdminEvent(req, res, next) {
+  const event = await events.getEventById(req.params.id);
+  if (!event) return notFound(res);
+  req.event = event;
+  next();
+}
+
+async function renderDetail(req, res, { message = null, error = null, status = 200 } = {}) {
+  const list = await participants.listParticipants(req.event.id);
+  res.status(status).render('admin/event', {
+    title: `관리: ${req.event.title}`,
+    wide: true,
+    event: req.event,
+    list,
+    inviteUrl: inviteUrl(req, req.event),
+    message,
+    error,
+  });
+}
+
+router.get('/events/:id', loadAdminEvent, (req, res) => {
+  renderDetail(req, res, { message: DONE_MESSAGES[req.query.done] || null });
+});
+
+router.post('/events/:id/participants/:pid/pin', loadAdminEvent, async (req, res) => {
+  try {
+    const ok = await participants.resetPin(req.event.id, req.params.pid, req.body.pin);
+    if (!ok) return notFound(res);
+    res.redirect(`/admin/events/${req.event.id}?done=pin`);
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderDetail(req, res, { error: err.message, status: 400 });
+  }
+});
+
+router.post('/events/:id/creator-pin', loadAdminEvent, async (req, res) => {
+  try {
+    await events.setCreatorPin(req.event.id, req.body.pin);
+    res.redirect(`/admin/events/${req.event.id}?done=creator`);
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderDetail(req, res, { error: err.message, status: 400 });
+  }
+});
+
+router.post('/events/:id/delete', loadAdminEvent, async (req, res) => {
+  if (String(req.body.confirm ?? '').trim() !== req.event.slug) {
+    return renderDetail(req, res, { error: '확인 문구가 운동회 코드와 다릅니다', status: 400 });
+  }
+  const files = await events.deleteEvent(req.event.id);
+  await Promise.all((files || []).map((f) => schedules.removeFile(f)));
+  res.redirect('/admin');
+});
+
+module.exports = router;

@@ -1,0 +1,45 @@
+<p><a href="/admin">목록으로</a></p>
+<h1 class="title"><%= event.title %></h1>
+<%- include('../partials/alert') %>
+<section class="card stack">
+  <h2>정보</h2>
+  <p>회차 <%= event.round_no %> · 상태 <%= statusLabel(event.status) %> · 인증코드 <strong><%= event.auth_code %></strong> · 코드 <strong><%= event.slug %></strong></p>
+  <p class="copy"><%= inviteUrl %></p>
+  <div><a class="btn" href="/e/<%= event.slug %>/manage">생성자 화면으로 들어가기</a></div>
+</section>
+<section class="card stack">
+  <h2>생성자 PIN 재설정</h2>
+  <form method="post" action="/admin/events/<%= event.id %>/creator-pin" class="row">
+    <input name="pin" inputmode="numeric" pattern="\d{6}" maxlength="6" required placeholder="새 6자리 PIN" style="width: 10em">
+    <button class="btn btn-small">재설정</button>
+  </form>
+</section>
+<section class="card table-wrap">
+  <h2>참가자 (<%= list.length %>명)</h2>
+  <table>
+    <thead><tr><th>이름</th><th>출석</th><th>입장일</th><th>PIN 재설정</th></tr></thead>
+    <tbody>
+      <% list.forEach((p) => { %>
+      <tr>
+        <td><%= p.name %></td>
+        <td><%= p.attendance === 'present' ? '참석' : '미출석' %></td>
+        <td><%= fmtDateTime(p.created_at) %></td>
+        <td>
+          <form method="post" action="/admin/events/<%= event.id %>/participants/<%= p.id %>/pin" class="row">
+            <input name="pin" inputmode="numeric" pattern="\d{4}" maxlength="4" required placeholder="새 4자리" style="width: 7em">
+            <button class="btn btn-small">재설정</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<section class="card stack">
+  <h2>운동회 삭제</h2>
+  <p class="hint">되돌릴 수 없습니다. 확인을 위해 운동회 코드 <strong><%= event.slug %></strong>를 입력하세요.</p>
+  <form method="post" action="/admin/events/<%= event.id %>/delete" class="row">
+    <input name="confirm" required style="width: 10em">
+    <button class="btn btn-small btn-danger">삭제</button>
+  </form>
+</section>
