@@ -16,6 +16,7 @@ async function migrate() {
     if (done.has(file)) continue;
     const sql = fs.readFileSync(path.join(dir, file), 'utf8');
     const client = await pool.connect();
+    let broken;
     try {
       await client.query('BEGIN');
       await client.query(sql);
@@ -23,10 +24,10 @@ async function migrate() {
       await client.query('COMMIT');
       applied.push(file);
     } catch (err) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (rollbackErr) { broken = rollbackErr; }
       throw err;
     } finally {
-      client.release();
+      client.release(broken);
     }
   }
   return applied;

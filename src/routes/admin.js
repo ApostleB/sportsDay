@@ -5,8 +5,10 @@ const schedules = require('../services/schedules');
 const { ValidationError } = require('../services/errors');
 const { checkAdminPassword, requireAdmin, notFound } = require('../middleware/auth');
 const { regenerate, inviteUrl } = require('./helpers');
+const { createAttemptLimiter, TOO_MANY } = require('../middleware/attempt-limit');
 
 const router = express.Router();
+const loginLimiter = createAttemptLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
 
 const DONE_MESSAGES = {
   pin: '참가자 PIN을 재설정했습니다',
@@ -19,9 +21,15 @@ router.get('/login', (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+  const limitKey = `${req.ip}|admin`;
+  if (loginLimiter.isBlocked(limitKey)) {
+    return res.status(429).render('admin/login', { title: '관리자 로그인', error: TOO_MANY });
+  }
   if (!checkAdminPassword(req.body.password)) {
+    loginLimiter.recordFailure(limitKey);
     return res.status(401).render('admin/login', { title: '관리자 로그인', error: '정보가 일치하지 않습니다' });
   }
+  loginLimiter.clear(limitKey);
   await regenerate(req);
   req.session.admin = true;
   res.redirect('/admin');
@@ -60,7 +68,7 @@ async function renderDetail(req, res, { message = null, error = null, status = 2
 }
 
 router.get('/events/:id', loadAdminEvent, (req, res) => (
-  renderDetail(req, res, { message: DONE_MESSAGES[req.query.done] || null })
+  renderDetail(req, res, { message: Object.hasOwn(DONE_MESSAGES, req.query.done) ? DONE_MESSAGES[req.query.done] : null })
 ));
 
 router.post('/events/:id/participants/:pid/pin', loadAdminEvent, async (req, res) => {

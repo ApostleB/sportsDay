@@ -115,7 +115,10 @@ async function verifyCreatorPin(event, pin) {
 async function setCreatorPin(id, pin) {
   if (!codes.isPin6(pin)) throw new ValidationError('생성자 PIN은 숫자 6자리여야 합니다');
   if (!isId(id)) return false;
-  const { rowCount } = await db.query('UPDATE events SET creator_pin_hash = $2 WHERE id = $1', [id, await hashPin(pin)]);
+  const { rowCount } = await db.query(
+    'UPDATE events SET creator_pin_hash = $2, creator_pin_version = creator_pin_version + 1 WHERE id = $1',
+    [id, await hashPin(pin)],
+  );
   return rowCount > 0;
 }
 

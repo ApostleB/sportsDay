@@ -24,6 +24,7 @@ async function resetDb() {
   const { migrate } = require('../db/migrate');
   await migrate();
   await db.query('TRUNCATE events, session RESTART IDENTITY CASCADE');
+  require('../src/middleware/attempt-limit').resetAllLimiters();
 }
 
 const EVENT_INPUT = {

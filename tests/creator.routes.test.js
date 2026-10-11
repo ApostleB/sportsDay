@@ -122,3 +122,26 @@ test('앞자리 0을 붙인 본인 id로 삭제를 우회할 수 없다', async 
   const { rows } = await H.db.query('SELECT id FROM participants WHERE id = $1', [creator.id]);
   assert.equal(rows.length, 1);
 });
+
+test('다시 입장한 생성자는 홈에서 생성자 입장 링크로 관리 페이지에 들어간다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = await H.joinAgent(event, { name: H.EVENT_INPUT.creatorName, pin: H.EVENT_INPUT.creatorPersonalPin });
+  const home = await agent.get(`/e/${event.slug}/home`).expect(200);
+  assert.match(home.text, new RegExp(`/e/${event.slug}/manage/unlock`));
+  assert.match(home.text, /생성자 입장/);
+  await agent.get(`/e/${event.slug}/manage/unlock`).expect(200);
+  await agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: H.EVENT_INPUT.creatorPin }).expect(302);
+  await agent.get(`/e/${event.slug}/manage`).expect(200);
+});
+
+test('생성자 PIN을 5번 틀리면 맞는 PIN도 429, 초기화 후에는 성공한다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = await H.joinAgent(event, { name: '생성자', pin: '1111' });
+  for (let i = 0; i < 5; i++) {
+    await agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '000000' }).expect(400);
+  }
+  const res = await agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '123456' }).expect(429);
+  assert.match(res.text, /시도가 너무 많습니다. 잠시 후 다시 시도해 주세요./);
+  require('../src/middleware/attempt-limit').resetAllLimiters();
+  await agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '123456' }).expect(302);
+});

@@ -10,6 +10,10 @@ function required(name) {
   return value;
 }
 
+if (isTest && process.env.TEST_DATABASE_URL && process.env.TEST_DATABASE_URL === process.env.DATABASE_URL) {
+  throw new Error('TEST_DATABASE_URL이 DATABASE_URL과 같습니다');
+}
+
 module.exports = {
   isTest,
   isProd: process.env.NODE_ENV === 'production',

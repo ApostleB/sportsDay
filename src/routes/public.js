@@ -29,7 +29,12 @@ router.post('/events', async (req, res) => {
   try {
     const { event, participant } = await events.createEvent(req.body);
     await regenerate(req);
-    setEventEntry(req, event.id, { participantId: participant.id, isCreator: true });
+    setEventEntry(req, event.id, {
+      participantId: participant.id,
+      isCreator: true,
+      pinVersion: participant.pin_version,
+      creatorPinVersion: event.creator_pin_version,
+    });
     res.redirect(`/e/${event.slug}/manage/created`);
   } catch (err) {
     if (!(err instanceof ValidationError)) throw err;

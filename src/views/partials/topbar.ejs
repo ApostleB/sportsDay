@@ -1,7 +1,7 @@
 <header class="topbar">
   <a class="brand" href="<%= base %>/home"><span><%= event.title %></span></a>
   <div class="row" style="flex-wrap: nowrap">
-    <% if (isCreator) { %><a class="btn btn-small" href="<%= base %>/manage">관리 페이지</a><% } %>
+    <% if (isCreator) { %><a class="btn btn-small" href="<%= base %>/manage">관리 페이지</a><% } else { %><a class="btn btn-small btn-ghost" href="<%= base %>/manage/unlock">생성자 입장</a><% } %>
     <details class="me">
       <summary class="chip"><%= participant.name %> ▾</summary>
       <div class="menu">

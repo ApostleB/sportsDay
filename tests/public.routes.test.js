@@ -122,3 +122,26 @@ test('입장 중에 삭제된 참가자는 입장 폼으로 돌아간다', async
   assert.equal(res.headers.location, `/e/${event.slug}`);
   await agent.get(`/e/${event.slug}`).expect(200);
 });
+
+test('입장 PIN을 10번 틀리면 맞는 PIN도 429, 초기화 후에는 성공한다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const send = (pin) => agent.post(`/e/${event.slug}/join`).type('form').send({ name: '생성자', pin, authCode: event.auth_code });
+  for (let i = 0; i < 10; i++) await send('9999').expect(400);
+  const res = await send('1111').expect(429);
+  assert.match(res.text, /시도가 너무 많습니다. 잠시 후 다시 시도해 주세요./);
+  require('../src/middleware/attempt-limit').resetAllLimiters();
+  await send('1111').expect(302);
+});
+
+test('나가기를 하면 세션 id가 새로 발급된다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const sid = (res) => (res.headers['set-cookie'] || []).map((c) => c.split(';')[0]).find((c) => c.startsWith('sid=') || c.startsWith('connect.sid='));
+  const joined = await agent.post(`/e/${event.slug}/join`).type('form')
+    .send({ name: '철수', pin: '1234', authCode: event.auth_code }).expect(302);
+  const out = await agent.post(`/e/${event.slug}/logout`).expect(302);
+  assert.ok(sid(joined));
+  assert.ok(sid(out), '로그아웃 시 세션 쿠키가 다시 발급되어야 합니다');
+  assert.notEqual(sid(out), sid(joined));
+});

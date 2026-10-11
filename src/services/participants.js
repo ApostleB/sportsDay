@@ -79,7 +79,7 @@ async function resetPin(eventId, id, pin) {
   if (!codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');
   if (!isId(id)) return false;
   const { rowCount } = await db.query(
-    'UPDATE participants SET pin_hash = $3 WHERE event_id = $1 AND id = $2',
+    'UPDATE participants SET pin_hash = $3, pin_version = pin_version + 1 WHERE event_id = $1 AND id = $2',
     [eventId, id, await hashPin(pin)],
   );
   return rowCount > 0;

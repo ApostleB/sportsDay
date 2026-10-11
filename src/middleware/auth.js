@@ -26,14 +26,19 @@ async function requireParticipant(req, res, next) {
   const entry = req.session.events?.[req.event.id];
   if (!entry) return res.redirect(res.locals.base);
   const participant = await participants.getParticipant(req.event.id, entry.participantId);
-  if (!participant) {
+  // 삭제됐거나 PIN이 재설정된 참가자는 이 운동회의 입장 정보를 지우고 입장 폼으로 보낸다
+  if (!participant || (entry.pinVersion ?? 0) !== participant.pin_version) {
     const nextEvents = { ...req.session.events };
     delete nextEvents[req.event.id];
     req.session.events = nextEvents;
     return res.redirect(res.locals.base);
   }
+  // 생성자 PIN이 재설정되면 생성자 권한만 내려놓고 참가자로는 계속 이용한다
+  if (entry.isCreator && (entry.creatorPinVersion ?? 0) !== req.event.creator_pin_version) {
+    req.session.events = { ...req.session.events, [req.event.id]: { ...entry, isCreator: false } };
+  }
   req.participant = participant;
-  req.isCreator = Boolean(entry.isCreator);
+  req.isCreator = Boolean(req.session.events[req.event.id].isCreator);
   res.locals.participant = participant;
   res.locals.isCreator = req.isCreator;
   next();

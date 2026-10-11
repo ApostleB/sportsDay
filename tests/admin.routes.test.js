@@ -109,3 +109,64 @@ test('상세 화면 렌더링 중 오류가 나면 500으로 응답한다', asyn
     console.error = origError;
   }
 });
+
+test('참가자 PIN을 재설정하면 그 참가자의 기존 세션은 끊기고 다른 운동회 세션은 유지된다', async () => {
+  const { event } = await H.makeEvent();
+  const { event: other } = await H.makeEvent({ roundNo: '4' });
+  const agent = await H.joinAgent(event, { name: '철수', pin: '1234' });
+  await agent.post(`/e/${other.slug}/join`).type('form').send({ name: '철수', pin: '1234', authCode: other.auth_code }).expect(302);
+  const { rows } = await H.db.query('SELECT id FROM participants WHERE event_id = $1 AND name = $2', [event.id, '철수']);
+  const admin = await H.adminAgent();
+  await admin.post(`/admin/events/${event.id}/participants/${rows[0].id}/pin`).type('form').send({ pin: '7777' }).expect(302);
+  const res = await agent.get(`/e/${event.slug}/home`).expect(302);
+  assert.equal(res.headers.location, `/e/${event.slug}`);
+  await agent.get(`/e/${other.slug}/home`).expect(200);
+});
+
+test('생성자 PIN을 재설정하면 기존 생성자 권한은 사라지지만 참가는 유지된다', async () => {
+  const { event } = await H.makeEvent();
+  const creator = await H.creatorAgent(event);
+  await creator.get(`/e/${event.slug}/manage`).expect(200);
+  const admin = await H.adminAgent();
+  await admin.post(`/admin/events/${event.id}/creator-pin`).type('form').send({ pin: '654321' }).expect(302);
+  const res = await creator.get(`/e/${event.slug}/manage`).expect(302);
+  assert.equal(res.headers.location, `/e/${event.slug}/manage/unlock`);
+  await creator.get(`/e/${event.slug}/home`).expect(200);
+});
+
+test('알 수 없는 done 값은 메시지를 보이지 않는다', async () => {
+  const { event } = await H.makeEvent();
+  const admin = await H.adminAgent();
+  const res = await admin.get(`/admin/events/${event.id}?done=constructor`).expect(200);
+  assert.doesNotMatch(res.text, /function Object/);
+  assert.doesNotMatch(res.text, /class="alert/);
+});
+
+test('관리자 비밀번호를 5번 틀리면 맞는 비밀번호도 429, 초기화 후에는 성공한다', async () => {
+  const agent = H.request.agent(H.getApp());
+  for (let i = 0; i < 5; i++) {
+    await agent.post('/admin/login').type('form').send({ password: 'wrong' }).expect(401);
+  }
+  const res = await agent.post('/admin/login').type('form').send({ password: 'admin-test-pw' }).expect(429);
+  assert.match(res.text, /시도가 너무 많습니다. 잠시 후 다시 시도해 주세요./);
+  await H.resetDb();
+  await agent.post('/admin/login').type('form').send({ password: 'admin-test-pw' }).expect(302);
+});
+
+test('관리자는 참가자 세션 없이 생성자 화면에서 참가자 화면 링크를 보지 않는다', async () => {
+  const { event } = await H.makeEvent();
+  const admin = await H.adminAgent();
+  const res = await admin.get(`/e/${event.slug}/manage`).expect(200);
+  assert.doesNotMatch(res.text, /참가자 화면/);
+});
+
+test('생성자 PIN 재설정 후 다시 입장해도 생성자 권한은 돌아오지 않는다', async () => {
+  const { event } = await H.makeEvent();
+  const creator = await H.creatorAgent(event);
+  const admin = await H.adminAgent();
+  await admin.post(`/admin/events/${event.id}/creator-pin`).type('form').send({ pin: '654321' }).expect(302);
+  await creator.post(`/e/${event.slug}/join`).type('form')
+    .send({ name: '생성자', pin: '1111', authCode: event.auth_code }).expect(302);
+  const res = await creator.get(`/e/${event.slug}/manage`).expect(302);
+  assert.equal(res.headers.location, `/e/${event.slug}/manage/unlock`);
+});
