@@ -1,0 +1,27 @@
+<h1 class="title">공지 관리</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/announcements" class="card stack">
+  <h2>새 공지</h2>
+  <label>제목<input name="title" maxlength="100" required value="<%= values.title %>"></label>
+  <label>내용<textarea name="body" rows="5"><%= values.body %></textarea></label>
+  <label class="check"><input type="checkbox" name="pinned" <%= values.pinned ? 'checked' : '' %>> 상단 고정</label>
+  <button class="btn btn-primary">등록</button>
+</form>
+<section class="card">
+  <h2>공지 목록</h2>
+  <% if (list.length === 0) { %><p class="muted">아직 공지가 없습니다.</p><% } %>
+  <ul class="list">
+    <% list.forEach((a) => { %>
+    <li class="row" style="justify-content: space-between">
+      <span><% if (a.pinned) { %><span class="badge badge-pin">고정</span><% } %><%= a.title %> <small class="muted"><%= fmtDateTime(a.created_at) %></small></span>
+      <span class="row">
+        <a class="btn btn-small" href="<%= base %>/manage/announcements/<%= a.id %>/edit">수정</a>
+        <form method="post" action="<%= base %>/manage/announcements/<%= a.id %>/delete" data-msg="공지를 삭제할까요?" onsubmit="return confirm(this.dataset.msg)">
+          <button class="btn btn-small btn-danger">삭제</button>
+        </form>
+      </span>
+    </li>
+    <% }) %>
+  </ul>
+</section>

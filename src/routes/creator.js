@@ -2,7 +2,8 @@ const express = require('express');
 const events = require('../services/events');
 const participants = require('../services/participants');
 const { ValidationError } = require('../services/errors');
-const { requireParticipant, requireCreator } = require('../middleware/auth');
+const announcements = require('../services/announcements');
+const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
 
 const router = express.Router({ mergeParams: true });
@@ -82,6 +83,50 @@ router.post('/participants/:id/delete', async (req, res) => {
   }
   await participants.deleteParticipant(req.event.id, req.params.id);
   res.redirect(manage(res, '/participants'));
+});
+
+async function renderAnnouncements(req, res, { error = null, values = {}, status = 200 } = {}) {
+  const list = await announcements.list(req.event.id);
+  res.status(status).render('creator/announcements', { title: '공지 관리', list, values, error });
+}
+
+router.get('/announcements', (req, res) => renderAnnouncements(req, res));
+
+router.post('/announcements', async (req, res) => {
+  try {
+    await announcements.create(req.event.id, req.body);
+    res.redirect(manage(res, '/announcements'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderAnnouncements(req, res, { error: err.message, values: req.body, status: 400 });
+  }
+});
+
+router.get('/announcements/:id/edit', async (req, res) => {
+  const announcement = await announcements.get(req.event.id, req.params.id);
+  if (!announcement) return notFound(res);
+  res.render('creator/announcement-edit', { title: '공지 수정', values: announcement });
+});
+
+router.post('/announcements/:id', async (req, res) => {
+  try {
+    const updated = await announcements.update(req.event.id, req.params.id, req.body);
+    if (!updated) return notFound(res);
+    res.redirect(manage(res, '/announcements'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    if (!(await announcements.get(req.event.id, req.params.id))) return notFound(res);
+    res.status(400).render('creator/announcement-edit', {
+      title: '공지 수정',
+      values: { id: req.params.id, title: req.body.title, body: req.body.body, pinned: req.body.pinned === 'on' },
+      error: err.message,
+    });
+  }
+});
+
+router.post('/announcements/:id/delete', async (req, res) => {
+  await announcements.remove(req.event.id, req.params.id);
+  res.redirect(manage(res, '/announcements'));
 });
 
 module.exports = router;

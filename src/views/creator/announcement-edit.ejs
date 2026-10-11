@@ -1,0 +1,9 @@
+<h1 class="title">공지 수정</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/announcements/<%= values.id %>" class="card stack">
+  <label>제목<input name="title" maxlength="100" required value="<%= values.title %>"></label>
+  <label>내용<textarea name="body" rows="8"><%= values.body %></textarea></label>
+  <label class="check"><input type="checkbox" name="pinned" <%= values.pinned ? 'checked' : '' %>> 상단 고정</label>
+  <button class="btn btn-primary">저장</button>
+</form>
