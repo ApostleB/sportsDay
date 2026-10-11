@@ -79,3 +79,11 @@ test('참가자를 삭제한다', async () => {
   assert.equal(await participants.deleteParticipant(event.id, participant.id), true);
   assert.deepEqual(await participants.listParticipants(event.id), []);
 });
+
+test('bigint 범위를 초과하는 id는 null/false', async () => {
+  const { event } = await H.makeEvent();
+  assert.equal(await participants.getParticipant(event.id, '99999999999999999999'), null);
+  assert.equal(await participants.setAttendance(event.id, '99999999999999999999', 'absent'), null);
+  assert.equal(await participants.deleteParticipant(event.id, '99999999999999999999'), false);
+  assert.equal(await participants.resetPin(event.id, '99999999999999999999', '9999'), false);
+});

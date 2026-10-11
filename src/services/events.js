@@ -5,7 +5,7 @@ const { ValidationError } = require('./errors');
 const { cleanName } = require('./participants');
 
 const STATUSES = ['ready', 'live', 'closed'];
-const isId = (value) => /^\d+$/.test(String(value));
+const isId = (value) => /^\d{1,18}$/.test(String(value));
 
 function parseRoundNo(value) {
   const n = Number(value);
@@ -122,9 +122,11 @@ async function setCreatorPin(id, pin) {
 async function deleteEvent(id) {
   if (!isId(id)) return null;
   return db.tx(async (client) => {
+    const { rows: eventRows } = await client.query('SELECT id FROM events WHERE id = $1 FOR UPDATE', [id]);
+    if (eventRows.length === 0) return null;
     const { rows } = await client.query('SELECT file_name FROM schedule_images WHERE event_id = $1', [id]);
-    const { rowCount } = await client.query('DELETE FROM events WHERE id = $1', [id]);
-    return rowCount > 0 ? rows.map((r) => r.file_name) : null;
+    await client.query('DELETE FROM events WHERE id = $1', [id]);
+    return rows.map((r) => r.file_name);
   });
 }
 

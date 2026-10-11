@@ -91,3 +91,8 @@ test('잘못된 id와 slug는 null', async () => {
   assert.equal(await events.getEventById('abc'), null);
   assert.equal(await events.getEventBySlug('nothere1'), null);
 });
+
+test('bigint 범위를 초과하는 id는 null', async () => {
+  assert.equal(await events.getEventById('99999999999999999999'), null);
+  assert.equal(await events.deleteEvent('99999999999999999999'), null);
+});

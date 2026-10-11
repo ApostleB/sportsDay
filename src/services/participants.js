@@ -6,7 +6,7 @@ const { ValidationError } = require('./errors');
 const MISMATCH = '이미 사용 중인 이름이거나 PIN이 틀렸습니다';
 const ATTENDANCE = ['present', 'absent'];
 
-const isId = (value) => /^\d+$/.test(String(value));
+const isId = (value) => /^\d{1,18}$/.test(String(value));
 
 function cleanName(value) {
   const name = String(value ?? '').trim().replace(/\s+/g, ' ');
