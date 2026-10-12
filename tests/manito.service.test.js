@@ -221,13 +221,17 @@ test('자동 반영: 3→2명은 서로, 2→1명은 빈 순환, 다시 2명이 
 test('자동 반영: 곧 삭제될 참가자는 leaving으로 먼저 이어 붙인다', async () => {
   const { event, people } = await setup(4);
   await manito.assign(event.id, mulberry32(13));
+  for (const p of people) await manito.acknowledge(event.id, p.id);
   const x = people[3];
+  const before = await H.manitoLinks(event.id);
+  const a = before.find((l) => l.receiver === String(x.id)).giver;
   await H.db.tx(async (client) => {
     await lockEvent(client, event.id);
     await manito.syncPresence(client, event.id, x.id, { leaving: true });
     await client.query('DELETE FROM participants WHERE id = $1', [x.id]);
   });
   assert.equal((await H.assertManitoCycle(event.id)).length, 4);
+  assert.deepEqual(await unackedGivers(event.id), [a]);
 });
 
 test('자동 반영: 이미 맞는 상태면 연결을 건드리지 않는다', async () => {
@@ -237,4 +241,14 @@ test('자동 반영: 이미 맞는 상태면 연결을 건드리지 않는다', 
   await sync(event.id, people[1].id);
   await sync(event.id, '999999');
   assert.deepEqual(await unackedGivers(event.id), []);
+});
+
+test('자동 반영: 형식이 틀린 id는 던지지 않고 아무것도 바꾸지 않는다', async () => {
+  const { event, people } = await setup(3);
+  await manito.assign(event.id, mulberry32(15));
+  const before = await H.manitoLinks(event.id);
+  for (const bad of ['abc', '01', '', null]) {
+    await sync(event.id, bad);
+  }
+  assert.deepEqual(await H.manitoLinks(event.id), before);
 });

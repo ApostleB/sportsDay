@@ -186,7 +186,9 @@ async function adminView(eventId) {
 
 // 출석 변경·삭제·생성 직후 같은 트랜잭션에서 부른다. 호출자가 운동회 행을 이미 잠갔어야 한다
 async function syncPresence(client, eventId, participantId, { leaving = false, random = Math.random } = {}) {
-  const { rows: eventRows } = await client.query('SELECT manito_stage FROM events WHERE id = $1', [eventId]);
+  if (!isId(eventId) || !isId(participantId)) return;
+  // 같은 트랜잭션에서 이미 잠갔어도 다시 잠가 호출자의 실수를 막는다
+  const { rows: eventRows } = await client.query('SELECT manito_stage FROM events WHERE id = $1 FOR UPDATE', [eventId]);
   if (!eventRows[0] || eventRows[0].manito_stage === 'none') return;
   const id = String(participantId);
   const { rows } = await client.query(
