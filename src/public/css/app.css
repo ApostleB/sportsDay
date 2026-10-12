@@ -95,13 +95,12 @@ input[type=file] { padding: 10px; }
 .schedule figcaption { margin-top: 6px; color: var(--muted); font-size: 13px; }
 
 /* 관리 화면 */
-.nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
-.nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 14px; text-decoration: none; }
 
 /* 관리 영역: 참가자 화면과 구분되는 차분한 배경과 상단 관리 막대 */
 body.area-manage { background: #EEF0F2; }
 .manage-bar { position: sticky; top: 0; z-index: 10; background: var(--ink); color: #fff; }
 .manage-bar :focus-visible { outline-color: var(--marker); }
+.manage-menu-list :focus-visible { outline-color: var(--focus); }
 .manage-bar-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; max-width: 960px; min-height: 56px; margin: 0 auto; padding: 6px 16px; }
 .manage-tag { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--marker); color: var(--ink); font: 700 13px/1.2 'Noto Sans KR', sans-serif; }
 .manage-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 18px/1.2 'Jua', sans-serif; }

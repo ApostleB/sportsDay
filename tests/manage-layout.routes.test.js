@@ -13,7 +13,7 @@ test('생성자 관리 화면은 모두 넓은 폭과 관리 막대를 쓴다', 
     const res = await agent.get(`/e/${event.slug}/manage${path}`).expect(200);
     assert.match(res.text, /<body class="wide area-manage">/, `${path || '/'} 폭`);
     assert.match(res.text, /class="manage-bar"/, `${path || '/'} 막대`);
-    assert.match(res.text, /운동회 관리/);
+    assert.match(res.text, /class="manage-tag">운동회 관리/);
     assert.match(res.text, new RegExp(`href="/e/${event.slug}/home">참가자 화면으로`));
   }
 });
@@ -50,6 +50,7 @@ test('참가자 화면과 PIN 확인 화면은 관리 화면이 아니다', asyn
   assert.doesNotMatch(home.text, /manage-bar/);
   const unlock = await member.get(`/e/${event.slug}/manage/unlock`).expect(200);
   assert.doesNotMatch(unlock.text, /manage-bar/);
+  assert.match(unlock.text, /<body class="">/);
 });
 
 test('플랫폼 관리자 화면도 관리 막대를 쓰고 로그인 화면은 쓰지 않는다', async () => {
@@ -65,4 +66,11 @@ test('플랫폼 관리자 화면도 관리 막대를 쓰고 로그인 화면은 
   const manage = await admin.get(`/e/${event.slug}/manage`).expect(200);
   assert.match(manage.text, /href="\/admin">플랫폼 관리</);
   assert.doesNotMatch(manage.text, /참가자 화면으로/);
+});
+
+test('관리 영역 안의 404 화면도 관리 막대를 쓴다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = await H.creatorAgent(event);
+  const res = await agent.get(`/e/${event.slug}/manage/announcements/999999/edit`).expect(404);
+  assert.match(res.text, /class="manage-bar"/);
 });
