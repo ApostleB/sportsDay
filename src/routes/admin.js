@@ -2,6 +2,7 @@ const express = require('express');
 const events = require('../services/events');
 const participants = require('../services/participants');
 const schedules = require('../services/schedules');
+const manito = require('../services/manito');
 const { ValidationError } = require('../services/errors');
 const { checkAdminPassword, requireAdmin, notFound } = require('../middleware/auth');
 const { regenerate, inviteUrl } = require('./helpers');
@@ -13,6 +14,10 @@ const loginLimiter = createAttemptLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
 const DONE_MESSAGES = {
   pin: '참가자 PIN을 재설정했습니다',
   creator: '생성자 PIN을 재설정했습니다',
+  manitoLock: '마니또 맵을 잠갔습니다',
+  manitoUnlock: '마니또 맵 잠금을 풀었습니다',
+  joinClosed: '참가를 마감했습니다',
+  joinOpen: '참가 마감을 풀었습니다',
 };
 
 router.get('/login', (req, res) => {
@@ -62,12 +67,16 @@ async function loadAdminEvent(req, res, next) {
 }
 
 async function renderDetail(req, res, { message = null, error = null, status = 200 } = {}) {
-  const list = await participants.listParticipants(req.event.id);
+  const [list, manitoView] = await Promise.all([
+    participants.listParticipants(req.event.id),
+    manito.adminView(req.event.id),
+  ]);
   res.status(status).render('admin/event', {
     title: `관리: ${req.event.title}`,
     wide: true,
     event: req.event,
     list,
+    manito: manitoView,
     inviteUrl: inviteUrl(req, req.event),
     message,
     error,
@@ -113,3 +122,15 @@ router.post('/events/:id/delete', loadAdminEvent, async (req, res) => {
 });
 
 module.exports = router;
+
+router.post('/events/:id/manito-lock', loadAdminEvent, async (req, res) => {
+  const locked = req.body.locked === '1';
+  await manito.setLocked(req.event.id, locked);
+  res.redirect(`/admin/events/${req.event.id}?done=${locked ? 'manitoLock' : 'manitoUnlock'}`);
+});
+
+router.post('/events/:id/join-closed', loadAdminEvent, async (req, res) => {
+  const closed = req.body.closed === '1';
+  await events.setJoinClosed(req.event.id, closed);
+  res.redirect(`/admin/events/${req.event.id}?done=${closed ? 'joinClosed' : 'joinOpen'}`);
+});

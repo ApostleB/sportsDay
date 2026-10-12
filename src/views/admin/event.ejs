@@ -14,6 +14,28 @@
     <button class="btn btn-small">재설정</button>
   </form>
 </section>
+<section class="card stack" id="manito">
+  <h2>마니또</h2>
+  <p>상태 <strong><%= manitoStageLabel(manito.stage) %></strong> · 순환 <%= manito.size %>명 · 확인 <%= manito.acknowledgedCount %>명 · 맵 <%= manito.locked ? '잠김' : '열림' %></p>
+  <% if (manito.cycle.length) { %>
+  <p class="copy"><%= manito.cycle.join(' → ') %> → <%= manito.cycle[0] %></p>
+  <% } else if (manito.stage !== 'none') { %>
+  <p class="muted">이어진 순환이 없습니다.</p>
+  <% } %>
+  <form method="post" action="/admin/events/<%= event.id %>/manito-lock">
+    <input type="hidden" name="locked" value="<%= manito.locked ? '0' : '1' %>">
+    <button class="btn btn-small"><%= manito.locked ? '잠금 해제' : '맵 잠그기' %></button>
+  </form>
+  <p class="hint">잠그면 공개된 전체 맵만 숨겨집니다. 각자 자기 마니또 확인은 계속 됩니다. 이름은 항상 가려서 보여 줍니다.</p>
+</section>
+<section class="card stack" id="join">
+  <h2>참가 마감</h2>
+  <p><strong><%= event.join_closed ? '참가 마감됨' : '참가 받는 중' %></strong></p>
+  <form method="post" action="/admin/events/<%= event.id %>/join-closed">
+    <input type="hidden" name="closed" value="<%= event.join_closed ? '0' : '1' %>">
+    <button class="btn btn-small"><%= event.join_closed ? '마감 풀기' : '참가 마감' %></button>
+  </form>
+</section>
 <section class="card table-wrap">
   <h2>참가자 (<%= list.length %>명)</h2>
   <table>
