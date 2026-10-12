@@ -167,3 +167,40 @@ test('같은 IP에서도 이름별로 따로 센다', async () => {
   // 이름의 대소문자·앞뒤 공백 차이로 제한을 피할 수 없다
   await send('  생성자 ', '1111').expect(429);
 });
+
+test('이름 안의 공백만 다른 입력은 같은 시도 횟수를 공유한다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const send = (name, pin) => agent.post(`/e/${event.slug}/join`).type('form').send({ name, pin, authCode: event.auth_code });
+  const variants = ['김 철수', '김  철수', '김　철수', ' 김 철수 '];
+  await send('김 철수', '1234').expect(302);
+  await agent.post(`/e/${event.slug}/logout`).expect(302);
+  for (let i = 0; i < 10; i++) await send(variants[i % variants.length], '9999').expect(400);
+  await send('김 철수', '1234').expect(429);
+  await send('김　　철수', '1234').expect(429);
+});
+
+test('입장 성공 뒤 세션 처리가 실패해도 기존 실패 기록은 지워지거나 줄지 않는다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const send = (name, pin) => agent.post(`/e/${event.slug}/join`).type('form').send({ name, pin, authCode: event.auth_code });
+  await send('철수', '1234').expect(302);
+  await agent.post(`/e/${event.slug}/logout`).expect(302);
+  // IP 키에 실패 2회를 쌓는다
+  await send('철수', '0000').expect(400);
+  await send('철수', '0001').expect(400);
+  const { Session } = require('express-session');
+  const original = Session.prototype.regenerate;
+  const origError = console.error;
+  Session.prototype.regenerate = function failRegenerate(cb) { cb(new Error('boom')); };
+  console.error = () => {};
+  try {
+    await send('영희', '1234').expect(500);
+  } finally {
+    Session.prototype.regenerate = original;
+    console.error = origError;
+  }
+  // IP 횟수는 2로 유지되어야 하므로 28번 더 실패하면 정확히 한도(30)에 닿는다
+  for (let i = 0; i < 28; i++) await send(`실패${i % 6}`, 'abc').expect(400);
+  await send('철수', '1234').expect(429);
+});

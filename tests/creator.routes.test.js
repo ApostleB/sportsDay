@@ -152,9 +152,8 @@ test('동시에 보낸 잘못된 PIN은 400이 최대 5개이고 나머지는 42
   const results = await Promise.all(Array.from({ length: 10 }, () => (
     agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '000000' }).then((r) => r.status)
   )));
-  assert.ok(results.filter((s) => s === 400).length <= 5, `400이 너무 많음: ${results}`);
-  assert.equal(results.filter((s) => s === 429).length, 10 - results.filter((s) => s === 400).length);
-  assert.equal(results.filter((s) => s === 429).length >= 5, true);
+  assert.equal(results.filter((s) => s === 400).length, 5, `상태 코드: ${results}`);
+  assert.equal(results.filter((s) => s === 429).length, 5, `상태 코드: ${results}`);
 });
 
 test('생성자 PIN 시도는 참가자별로 센다', async () => {
