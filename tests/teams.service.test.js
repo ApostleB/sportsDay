@@ -97,3 +97,30 @@ test('뽑기 진행 중에는 팀 수와 팀 설정을 바꿀 수 없다', async
   await assert.rejects(teams.setTeamCount(event.id, '5'), /진행 중/);
   await assert.rejects(teams.saveTeams(event.id, form(list, { name0: '새이름' })), /진행 중/);
 });
+
+test('잘못된 운동회 id는 SQL에 닿기 전에 걸러진다', async () => {
+  for (const bad of ['abc', '01']) {
+    assert.deepEqual(await teams.listTeams(bad), []);
+    await teams.ensureDefaultTeams(bad);
+    await assert.rejects(teams.setTeamCount(bad, '5'), /운동회를 찾을 수 없습니다/);
+    await assert.rejects(teams.saveTeams(bad, {}), /운동회를 찾을 수 없습니다/);
+  }
+});
+
+test('대체 이름도 이미 쓰이고 있으면 다음 번호로 건너뛴다', async () => {
+  const { event } = await H.makeEvent();
+  let list = await teams.listTeams(event.id);
+  await teams.saveTeams(event.id, form(list, { name0: '퍼플', name1: '퍼플 5' }));
+  await teams.setTeamCount(event.id, '5');
+  list = await teams.listTeams(event.id);
+  assert.equal(list[4].name, '퍼플 6');
+});
+
+test('다른 운동회 참가자가 팀장으로 박혀 있어도 이름이 새지 않는다', async () => {
+  const { event } = await H.makeEvent();
+  const { event: other } = await H.makeEvent();
+  const outsider = await H.addParticipant(other.id, '남의사람');
+  await H.db.query('UPDATE teams SET leader_participant_id = $1 WHERE event_id = $2 AND sort_order = 0', [outsider.id, event.id]);
+  const list = await teams.listTeams(event.id);
+  assert.equal(list[0].leader_name, null);
+});

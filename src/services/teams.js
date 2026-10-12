@@ -39,9 +39,10 @@ async function insertDefaultTeams(client, eventId) {
 }
 
 async function listTeams(eventId, client = db) {
+  if (!isId(eventId)) return [];
   const { rows } = await client.query(
     `SELECT t.*, p.name AS leader_name
-     FROM teams t LEFT JOIN participants p ON p.id = t.leader_participant_id
+     FROM teams t LEFT JOIN participants p ON p.id = t.leader_participant_id AND p.event_id = t.event_id
      WHERE t.event_id = $1 ORDER BY t.sort_order, t.id`,
     [eventId],
   );
@@ -50,6 +51,7 @@ async function listTeams(eventId, client = db) {
 
 // 1단계에서 만든 운동회처럼 팀이 하나도 없으면 기본 4팀을 만든다
 async function ensureDefaultTeams(eventId) {
+  if (!isId(eventId)) return undefined;
   return db.tx(async (client) => {
     const { rows } = await client.query('SELECT id FROM events WHERE id = $1 FOR UPDATE', [eventId]);
     if (!rows[0]) return;
@@ -76,7 +78,8 @@ async function setTeamCount(eventId, value) {
     const free = PALETTE.filter((c) => !usedColors.has(c.key));
     for (let i = current.length; i < count; i++) {
       const color = free.shift() || PALETTE[i];
-      const name = usedNames.has(color.name) ? `${color.name} ${i + 1}` : color.name;
+      let name = color.name;
+      for (let n = i + 1; usedNames.has(name); n++) name = `${color.name} ${n}`;
       usedNames.add(name);
       await insertTeam(client, eventId, name, color.key, i);
     }
