@@ -1,0 +1,11 @@
+<h1 class="title">참가자 수정</h1>
+<%- include('../partials/alert') %>
+<form method="post" action="<%= base %>/manage/participants/<%= values.id %>/edit" class="card stack">
+  <label>이름<input name="name" maxlength="20" required value="<%= values.name %>"></label>
+  <label>새 PIN <small class="muted">바꿀 때만 숫자 4자리 입력</small>
+    <input name="pin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="new-password">
+  </label>
+  <p class="hint">PIN을 바꾸면 그 참가자는 모든 기기에서 다시 입장해야 합니다. 이름을 바꾸면 다음 입장부터 새 이름으로 들어옵니다. 본인 PIN은 여기서 바꿀 수 없습니다.</p>
+  <button class="btn btn-primary">저장</button>
+  <a class="btn btn-ghost" href="<%= base %>/manage/participants">취소</a>
+</form>

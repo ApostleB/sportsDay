@@ -85,6 +85,50 @@ async function resetPin(eventId, id, pin) {
   return rowCount > 0;
 }
 
+const duplicateName = (name) => new ValidationError(`이름 "${name}"이(가) 이미 있습니다`);
+
+// 생성자가 직접 추가하는 참가자. 인증코드 확인 없이 이름과 개인 PIN으로 만든다
+async function createParticipant(eventId, input) {
+  const name = cleanName(input.name);
+  const pin = String(input.pin ?? '');
+  if (!codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');
+  try {
+    const { rows } = await db.query(
+      'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
+      [eventId, name, await hashPin(pin)],
+    );
+    return rows[0];
+  } catch (err) {
+    if (err.code === '23505') throw duplicateName(name);
+    throw err;
+  }
+}
+
+// 이름을 바꾸고, PIN을 입력했으면 PIN도 바꾼다. PIN이 바뀌면 pin_version을 올려 기존 세션을 끊는다
+async function updateParticipant(eventId, id, input) {
+  const name = cleanName(input.name);
+  const pin = String(input.pin ?? '').trim();
+  if (pin && !codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');
+  if (!isId(id)) return null;
+  try {
+    const { rows } = pin
+      ? await db.query(
+        `UPDATE participants SET name = $3, pin_hash = $4, pin_version = pin_version + 1
+         WHERE event_id = $1 AND id = $2 RETURNING *`,
+        [eventId, id, name, await hashPin(pin)],
+      )
+      : await db.query(
+        'UPDATE participants SET name = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
+        [eventId, id, name],
+      );
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '23505') throw duplicateName(name);
+    throw err;
+  }
+}
+
 module.exports = {
   MISMATCH, cleanName, join, listParticipants, getParticipant, setAttendance, deleteParticipant, resetPin,
+  createParticipant, updateParticipant,
 };

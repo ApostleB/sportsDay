@@ -100,12 +100,44 @@ router.post('/event', async (req, res) => {
   }
 });
 
-async function renderParticipants(req, res, error = null, status = 200) {
+async function renderParticipants(req, res, { error = null, status = 200, values = {} } = {}) {
   const list = await participants.listParticipants(req.event.id);
-  res.status(status).render('creator/participants', { title: '참가자 관리', wide: true, list, error });
+  res.status(status).render('creator/participants', { title: '참가자 관리', wide: true, list, error, values });
 }
 
 router.get('/participants', (req, res) => renderParticipants(req, res));
+
+router.post('/participants', async (req, res) => {
+  try {
+    await participants.createParticipant(req.event.id, req.body);
+    res.redirect(manage(res, '/participants'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderParticipants(req, res, { error: err.message, status: 400, values: { name: req.body.name } });
+  }
+});
+
+router.get('/participants/:id/edit', async (req, res) => {
+  const p = await participants.getParticipant(req.event.id, req.params.id);
+  if (!p) return notFound(res);
+  res.render('creator/participant-edit', { title: '참가자 수정', values: { id: p.id, name: p.name } });
+});
+
+router.post('/participants/:id/edit', async (req, res) => {
+  const isSelf = Boolean(req.participant) && String(req.participant.id) === String(req.params.id);
+  try {
+    if (isSelf && String(req.body.pin ?? '').trim()) throw new ValidationError('본인 PIN은 여기서 바꿀 수 없습니다');
+    const updated = await participants.updateParticipant(req.event.id, req.params.id, req.body);
+    if (!updated) return notFound(res);
+    res.redirect(manage(res, '/participants'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    if (!(await participants.getParticipant(req.event.id, req.params.id))) return notFound(res);
+    res.status(400).render('creator/participant-edit', {
+      title: '참가자 수정', values: { id: req.params.id, name: req.body.name }, error: err.message,
+    });
+  }
+});
 
 router.post('/participants/:id', async (req, res) => {
   try {
@@ -113,13 +145,13 @@ router.post('/participants/:id', async (req, res) => {
     res.redirect(manage(res, '/participants'));
   } catch (err) {
     if (!(err instanceof ValidationError)) throw err;
-    await renderParticipants(req, res, err.message, 400);
+    await renderParticipants(req, res, { error: err.message, status: 400 });
   }
 });
 
 router.post('/participants/:id/delete', async (req, res) => {
   if (req.participant && String(req.participant.id) === String(req.params.id)) {
-    return renderParticipants(req, res, '본인은 삭제할 수 없습니다', 400);
+    return renderParticipants(req, res, { error: '본인은 삭제할 수 없습니다', status: 400 });
   }
   await participants.deleteParticipant(req.event.id, req.params.id);
   res.redirect(manage(res, '/participants'));
