@@ -12,8 +12,9 @@ function cleanGroupName(value) {
 }
 
 async function listGroups(eventId) {
+  if (!isId(eventId)) return [];
   const { rows } = await db.query(
-    `SELECT g.*, (SELECT count(*)::int FROM participants p WHERE p.group_id = g.id) AS member_count
+    `SELECT g.*, (SELECT count(*)::int FROM participants p WHERE p.group_id = g.id AND p.event_id = g.event_id) AS member_count
      FROM groups g WHERE g.event_id = $1 ORDER BY g.sort_order, g.id`,
     [eventId],
   );
@@ -48,6 +49,8 @@ async function renameGroup(eventId, id, value) {
   if (!isId(id)) return null;
   return db.tx(async (client) => {
     await lockEditable(client, eventId);
+    const { rows: found } = await client.query('SELECT id FROM groups WHERE event_id = $1 AND id = $2', [eventId, id]);
+    if (!found[0]) return null;
     await assertNameFree(client, eventId, name, id);
     const { rows } = await client.query(
       'UPDATE groups SET name = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
@@ -67,7 +70,8 @@ async function deleteGroup(eventId, id) {
 }
 
 // 폼 필드 g<참가자 id>의 값으로 소속을 바꾼다. 빈 값은 그룹 없음, 필드가 없으면 그대로 둔다
-async function saveMembership(eventId, input) {
+async function saveMembership(eventId, rawInput) {
+  const input = rawInput ?? {};
   return db.tx(async (client) => {
     await lockEditable(client, eventId);
     const { rows: groupRows } = await client.query('SELECT id FROM groups WHERE event_id = $1', [eventId]);

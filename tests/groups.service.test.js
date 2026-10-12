@@ -82,3 +82,18 @@ test('뽑기 진행 중에는 그룹을 바꿀 수 없다', async () => {
   await assert.rejects(groups.deleteGroup(event.id, a.id), /진행 중/);
   await assert.rejects(groups.saveMembership(event.id, { [`g${p.id}`]: String(a.id) }), /진행 중/);
 });
+
+test('잘못된 운동회 id는 거부하거나 빈 목록을 돌려준다', async () => {
+  for (const bad of ['abc', '01']) {
+    await assert.rejects(groups.createGroup(bad, '축구부'), /운동회를 찾을 수 없습니다/);
+    assert.deepEqual(await groups.listGroups(bad), []);
+  }
+});
+
+test('없는 그룹의 이름 변경은 이름이 겹쳐도 null, 빈 입력은 무시', async () => {
+  const { event } = await H.makeEvent();
+  await groups.createGroup(event.id, '축구부');
+  assert.equal(await groups.renameGroup(event.id, '999999', '축구부'), null);
+  await groups.saveMembership(event.id, null);
+  await groups.saveMembership(event.id, undefined);
+});
