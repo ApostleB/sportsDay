@@ -125,5 +125,31 @@ test('입장하지 않은 사람은 마니또 화면에 들어올 수 없다', a
     const res = await app.get(`/e/${event.slug}${path}`).expect(302);
     assert.equal(res.headers.location, `/e/${event.slug}`);
   }
-  await app.post(`/e/${event.slug}/manito/open`).expect(302);
+  const post = await app.post(`/e/${event.slug}/manito/open`).expect(302);
+  assert.equal(post.headers.location, `/e/${event.slug}`);
+});
+
+test('맵: 10명 이하는 원형, 11명 이상은 목록', async () => {
+  const small = await setup();
+  await manito.assign(small.event.id, mulberry32(6));
+  await manito.open(small.event.id);
+  let res = await small.agents['가람'].get(`${small.base}/manito/map`).expect(200);
+  assert.match(res.text, /class="manito-map circle"/);
+  const { event, agents, base } = await setup();
+  for (let i = 1; i <= 6; i++) await H.addParticipant(event.id, `추가${i}`);
+  await manito.assign(event.id, mulberry32(7));
+  await manito.open(event.id);
+  res = await agents['가람'].get(`${base}/manito/map`).expect(200);
+  assert.match(res.text, /class="manito-map"/);
+  assert.doesNotMatch(res.text, /manito-map circle/);
+});
+
+test('맵: 순환이 비면 안내만', async () => {
+  const { event, agents, base } = await setup();
+  await manito.assign(event.id, mulberry32(8));
+  await manito.open(event.id);
+  const { rows } = await H.db.query("SELECT id FROM participants WHERE event_id = $1 AND name IN ('나래', '다솜', '라온', '마루')", [event.id]);
+  for (const r of rows) await participants.setAttendance(event.id, r.id, 'absent');
+  const res = await agents['가람'].get(`${base}/manito/map`).expect(200);
+  assert.match(res.text, /지금은 이어진 마니또가 없어요/);
 });

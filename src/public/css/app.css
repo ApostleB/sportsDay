@@ -166,7 +166,6 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .bib[class*="team-"] .band { display: block; }
 .team-card { border-top: 6px solid var(--team); }
 .team-card h2 .muted { margin-left: auto; }
-/* 좁은 화면에서는 관리 막대의 운동회 제목을 아랫줄 전체 폭으로 내린다 */
 /* 마니또 */
 .envelope-icon { margin: 0; font-size: 64px; line-height: 1; }
 .envelope { text-align: center; background: #FFF1E6; border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 4px 0 var(--ink); }
@@ -179,12 +178,14 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .manito-from { font-weight: 700; }
 .manito-to { color: var(--muted); }
 @media (min-width: 768px) {
-  .manito-map.circle { position: relative; display: block; width: 420px; max-width: 100%; aspect-ratio: 1; margin: 16px auto 8px; border: 2px dashed var(--line); border-radius: 50%; }
-  .manito-map.circle li { position: absolute; left: 50%; top: 50%; width: 96px; margin: -22px 0 0 -48px; justify-content: center; padding: 8px 4px; text-align: center;
-    transform: rotate(calc(360deg / var(--n) * var(--i))) translateY(-175px) rotate(calc(-360deg / var(--n) * var(--i))); }
+  .manito-map.circle { position: relative; display: block; width: 400px; max-width: 100%; aspect-ratio: 1; margin: 16px auto 8px; border: 2px dashed var(--line); border-radius: 50%; }
+  .manito-map.circle::before { content: '↻\A시계 방향'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); white-space: pre; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .manito-map.circle li { position: absolute; left: 50%; top: 50%; width: 88px; margin: -22px 0 0 -44px; justify-content: center; padding: 8px 4px; text-align: center; word-break: keep-all; overflow-wrap: anywhere;
+    transform: rotate(calc(360deg / var(--n) * var(--i))) translateY(-150px) rotate(calc(-360deg / var(--n) * var(--i))); }
   .manito-map.circle .manito-to { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
+/* 좁은 화면에서는 관리 막대의 운동회 제목을 아랫줄 전체 폭으로 내린다 */
 @media (max-width: 520px) {
   .manage-name { order: 3; flex-basis: 100%; }
 }
