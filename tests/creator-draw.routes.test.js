@@ -41,6 +41,7 @@ test('시작하면 진행표에 안 뽑은 사람의 팀이 드러나지 않는�
   assert.equal(res.headers.location, base);
   assert.equal(await drawOpen(event.id), true);
   const page = await agent.get(base).expect(200);
+  for (const t of await teams.listTeams(event.id)) assert.match(page.text, new RegExp(`data-team="${t.id}">0명 공개`));
   for (const p of people) {
     const row = rowOf(page.text, p.id);
     assert.match(row, /안 뽑음/);
@@ -59,17 +60,20 @@ test('대신 뽑기와 팀 옮기기', async () => {
   await agent.post(`${base}/proxy/${people[0].id}`).expect(302);
   assert.equal(await methodOf(people[0].id), 'proxy');
   const list = await teams.listTeams(event.id);
-  await agent.post(`${base}/move/${people[1].id}`).type('form').send({ teamId: String(list[2].id) }).expect(302);
+  const proxiedId = (await H.db.query('SELECT team_id FROM draw_results WHERE participant_id = $1', [people[0].id])).rows[0].team_id;
+  const target = list.find((t) => t.id !== proxiedId);
+  await agent.post(`${base}/move/${people[1].id}`).type('form').send({ teamId: String(target.id) }).expect(302);
   assert.equal(await methodOf(people[1].id), 'manual');
   const page = await agent.get(base).expect(200);
   assert.match(rowOf(page.text, people[0].id), /대리/);
   const movedRow = rowOf(page.text, people[1].id);
   assert.match(movedRow, /수동/);
-  assert.match(movedRow, new RegExp(`badge team-${list[2].color}`));
-  assert.match(movedRow, new RegExp(`<option value="${list[2].id}" selected>`));
-  assert.match(page.text, new RegExp(`data-team="${list[2].id}">1명 공개`));
-  const proxied = list.find((t) => rowOf(page.text, people[0].id).includes(`badge team-${t.color}`));
-  assert.match(page.text, new RegExp(`data-team="${proxied.id}">\\d+명 공개`));
+  assert.match(movedRow, new RegExp(`badge team-${target.color}`));
+  assert.match(movedRow, new RegExp(`<option value="${target.id}" selected>`));
+  for (const t of list) {
+    const expected = t.id === target.id || t.id === proxiedId ? 1 : 0;
+    assert.match(page.text, new RegExp(`data-team="${t.id}">${expected}명 공개`));
+  }
   assert.doesNotMatch(rowOf(page.text, people[0].id), /대신 뽑기/);
   assert.match(rowOf(page.text, people[2].id), /대신 뽑기/);
   await agent.post(`${base}/proxy/999999`).expect(404);
