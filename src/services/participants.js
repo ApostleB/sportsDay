@@ -89,6 +89,7 @@ const duplicateName = (name) => new ValidationError(`이름 "${name}"이(가) �
 
 // 생성자가 직접 추가하는 참가자. 인증코드 확인 없이 이름과 개인 PIN으로 만든다
 async function createParticipant(eventId, input) {
+  if (!isId(eventId)) throw new ValidationError('운동회를 찾을 수 없습니다');
   const name = cleanName(input.name);
   const pin = String(input.pin ?? '');
   if (!codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');
@@ -106,6 +107,7 @@ async function createParticipant(eventId, input) {
 
 // 이름을 바꾸고, PIN을 입력했으면 PIN도 바꾼다. PIN이 바뀌면 pin_version을 올려 기존 세션을 끊는다
 async function updateParticipant(eventId, id, input) {
+  if (!isId(eventId)) return null;
   const name = cleanName(input.name);
   const pin = String(input.pin ?? '').trim();
   if (pin && !codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');

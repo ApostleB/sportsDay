@@ -94,3 +94,10 @@ test('앞자리 0이 붙은 id는 거부한다', async () => {
   assert.equal(await participants.deleteParticipant(event.id, '0' + participant.id), false);
   assert.ok(await participants.getParticipant(event.id, participant.id));
 });
+
+test('잘못된 eventId: 추가는 검증 오류, 수정은 null', async () => {
+  for (const bad of ['abc', '01']) {
+    await assert.rejects(participants.createParticipant(bad, { name: '철수', pin: '1234' }), isVE(/운동회를 찾을 수 없습니다/));
+    assert.equal(await participants.updateParticipant(bad, 1, { name: '철수', pin: '' }), null);
+  }
+});

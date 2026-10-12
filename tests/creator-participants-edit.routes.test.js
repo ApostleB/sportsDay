@@ -44,6 +44,8 @@ test('이름만 바꾸면 기존 세션은 유지되고 새 이름으로 입장�
   assert.match(form.text, /value="철수"/);
   await agent.post(`${base}/${p.id}/edit`).type('form').send({ name: '철수2', pin: '' }).expect(302);
   await member.get(`/e/${event.slug}/home`).expect(200);
+  assert.equal(await byName(event.id, '철수'), undefined);
+  assert.equal((await byName(event.id, '철수2')).id, p.id);
   await H.joinAgent(event, { name: '철수2', pin: '2222' });
 });
 
@@ -68,6 +70,8 @@ test('수정 검증, 본인 PIN 제한, 없는 참가자', async () => {
   await agent.post(`${base}/${p.id}/edit`).type('form').send({ name: '철수', pin: 'abcd' }).expect(400);
   const self = await agent.post(`${base}/${creator.id}/edit`).type('form').send({ name: '생성자', pin: '5555' }).expect(400);
   assert.match(self.text, /본인 PIN/);
+  assert.equal((await byName(event.id, '생성자')).pin_version, creator.pin_version);
+  await agent.get(`/e/${event.slug}/manage`).expect(200);
   await agent.post(`${base}/${creator.id}/edit`).type('form').send({ name: '총무', pin: '' }).expect(302);
   assert.ok(await byName(event.id, '총무'));
   await agent.get(`${base}/999999/edit`).expect(404);
@@ -83,4 +87,14 @@ test('일반 참가자는 추가·수정할 수 없고 관리자는 할 수 있�
   await admin.post(base).type('form').send({ name: '관리자추가', pin: '1234' }).expect(302);
   const added = await byName(event.id, '관리자추가');
   await admin.post(`${base}/${added.id}/edit`).type('form').send({ name: '관리자추가', pin: '7777' }).expect(302);
+  assert.ok((await byName(event.id, '관리자추가')).pin_version > added.pin_version);
+});
+
+test('다른 운동회 생성자는 남의 참가자를 수정할 수 없다', async () => {
+  const { agent, base } = await setup();
+  const other = await H.makeEvent();
+  const target = await H.addParticipant(other.event.id, '남의참가자');
+  await agent.get(`${base}/${target.id}/edit`).expect(404);
+  await agent.post(`${base}/${target.id}/edit`).type('form').send({ name: '탈취', pin: '' }).expect(404);
+  assert.equal((await H.db.query('SELECT name FROM participants WHERE id = $1', [target.id])).rows[0].name, '남의참가자');
 });
