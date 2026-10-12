@@ -235,3 +235,60 @@ test('다른 운동회 참가자가 팀장으로 걸려 있어도 시작과 현�
   await assertConsistent(event.id);
   assert.ok(people.length);
 });
+
+const participantsSvc = require('../src/services/participants');
+
+test('open과 참가자 삭제가 겹쳐도 항상 직렬화된 결과가 나온다', async () => {
+  const { event } = await setup(5);
+  await draw.start(event.id, mulberry32(3));
+  for (let i = 0; i < 10; i++) {
+    const late = await H.addParticipant(event.id, `늦은${i}`);
+    const [opened, deleted] = await Promise.all([
+      draw.open(event.id, late.id),
+      participantsSvc.deleteParticipant(event.id, late.id),
+    ]);
+    // open이 먼저면 결과가 있고 삭제가 그 기록을 지운다. 삭제가 먼저면 open은 null이다. DB 오류는 없다
+    assert.equal(deleted, true);
+    if (opened !== null) assert.ok(opened.team.name);
+    const gone = await H.db.query('SELECT 1 FROM participants WHERE id = $1', [late.id]);
+    assert.equal(gone.rowCount, 0);
+    const left = await H.db.query('SELECT 1 FROM draw_results WHERE participant_id = $1', [late.id]);
+    assert.equal(left.rowCount, 0);
+  }
+});
+
+test('결석 표시와 뽑기 시작이 겹쳐도 봉투와 출석이 어긋나지 않는다', async () => {
+  for (let i = 0; i < 6; i++) {
+    await H.resetDb();
+    const { event, people } = await setup(6);
+    const target = people[1];
+    await Promise.all([
+      draw.start(event.id, mulberry32(i)),
+      participantsSvc.setAttendance(event.id, target.id, 'absent'),
+    ]);
+    const row = (await H.db.query('SELECT attendance, team_id FROM participants WHERE id = $1', [target.id])).rows[0];
+    assert.equal(row.attendance, 'absent');
+    // 봉투가 없으면 결석이 먼저였고, 있으면 시작이 먼저였다. 어느 쪽이든 공개 기록과 봉투는 일치한다
+    await assertConsistent(event.id);
+    const open = await H.db.query('SELECT draw_open FROM events WHERE id = $1', [event.id]);
+    assert.equal(open.rows[0].draw_open, true);
+  }
+});
+
+test('대신 뽑기에서 봉투 없는 결석자는 팀 옮기기 안내를 받는다', async () => {
+  const { event, people } = await setup(6);
+  await H.db.query("UPDATE participants SET attendance = 'absent' WHERE id = $1", [people[2].id]);
+  await draw.start(event.id, mulberry32(5));
+  await assert.rejects(draw.open(event.id, people[2].id, 'proxy'), /팀 옮기기로 배치해 주세요/);
+  await assert.rejects(draw.open(event.id, people[2].id, 'self'), (e) => e.message === draw.ABSENT);
+});
+
+test('hasEnvelope는 봉투 유무만 알려 준다', async () => {
+  const { event, people } = await setup(6);
+  await H.db.query("UPDATE participants SET attendance = 'absent' WHERE id = $1", [people[2].id]);
+  assert.equal(await draw.hasEnvelope(event.id, people[1].id), false);
+  await draw.start(event.id, mulberry32(5));
+  assert.equal(await draw.hasEnvelope(event.id, people[1].id), true);
+  assert.equal(await draw.hasEnvelope(event.id, people[2].id), false);
+  assert.equal(await draw.hasEnvelope(event.id, 'x'), false);
+});

@@ -3,7 +3,7 @@
   <div class="meta"><%= event.title %> 참가자</div>
   <div class="name"><%= participant.name %></div>
   <% if (result) { %>
-  <span class="badge team-<%= result.team.color %>"><%= result.team.mark %> <%= result.team.name %>팀</span>
+  <span class="badge team-<%= result.team.color %>"><%= result.team.mark %> <%= result.team.name.endsWith('팀') ? result.team.name : result.team.name + '팀' %></span>
   <% if (result.leaderName) { %><span class="badge">팀장: <%= result.leaderName %></span><% } %>
   <% } else { %>
   <span class="badge">팀 배정 전</span>

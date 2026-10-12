@@ -251,14 +251,21 @@ router.post('/schedules/:id/delete', async (req, res) => {
   res.redirect(manage(res, '/schedules'));
 });
 
+// 거부된 변경 뒤에는 요청 시작 때의 event 대신 최신 상태로 다시 그린다
+async function freshDrawOpen(req) {
+  const event = await events.getEventById(req.event.id);
+  return Boolean(event ? event.draw_open : req.event.draw_open);
+}
+
 async function renderTeams(req, res, { error = null, values = null, status = 200 } = {}) {
+  const drawOpen = await freshDrawOpen(req);
   await teams.ensureDefaultTeams(req.event.id);
   const [teamList, people] = await Promise.all([
     teams.listTeams(req.event.id),
     participants.listParticipants(req.event.id),
   ]);
   res.status(status).render('creator/teams', {
-    title: '팀 설정', wide: true, teams: teamList, people, palette: teams.PALETTE, values, error, locked: req.event.draw_open,
+    title: '팀 설정', wide: true, teams: teamList, people, palette: teams.PALETTE, values, error, locked: drawOpen,
   });
 }
 
@@ -285,12 +292,13 @@ router.post('/teams', async (req, res) => {
 });
 
 async function renderGroups(req, res, { error = null, status = 200 } = {}) {
+  const drawOpen = await freshDrawOpen(req);
   const [groupList, list] = await Promise.all([
     groups.listGroups(req.event.id),
     participants.listParticipants(req.event.id),
   ]);
   res.status(status).render('creator/groups', {
-    title: '그룹', wide: true, groups: groupList, list, error, locked: req.event.draw_open,
+    title: '그룹', wide: true, groups: groupList, list, error, locked: drawOpen,
   });
 }
 
@@ -314,14 +322,15 @@ router.post('/groups/:id', (req, res) => groupAction(req, res, () => groups.rena
 router.post('/groups/:id/delete', (req, res) => groupAction(req, res, () => groups.deleteGroup(req.event.id, req.params.id)));
 
 async function renderDraw(req, res, { error = null, status = 200 } = {}) {
+  const drawOpen = await freshDrawOpen(req);
   await teams.ensureDefaultTeams(req.event.id);
   const [teamList, rows, problems] = await Promise.all([
     teams.listTeams(req.event.id),
     draw.progress(req.event.id),
-    req.event.draw_open ? [] : draw.startProblems(req.event.id),
+    drawOpen ? [] : draw.startProblems(req.event.id),
   ]);
   res.status(status).render('creator/draw', {
-    title: '팀 뽑기', wide: true, teams: teamList, rows, problems, open: req.event.draw_open, error,
+    title: '팀 뽑기', wide: true, teams: teamList, rows, problems, open: drawOpen, error,
   });
 }
 

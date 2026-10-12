@@ -6,6 +6,7 @@ const { assignAll, assignLate } = require('./draw-assign');
 
 const NOT_OPEN = '팀 뽑기가 아직 열리지 않았습니다';
 const ABSENT = '결석으로 표시되어 있어요. 생성자에게 알려 주세요';
+const ABSENT_PROXY = '결석으로 표시된 참가자는 봉투가 없습니다. 팀 옮기기로 배치해 주세요';
 const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
 
 // 그룹이 없는 사람은 혼자인 그룹으로 친다
@@ -129,6 +130,16 @@ async function myResult(eventId, participantId) {
   return revealOf(db, eventId, participantId);
 }
 
+// 봉투가 배정됐는지만 알려 준다. 어느 팀인지는 내보내지 않는다
+async function hasEnvelope(eventId, participantId) {
+  if (!isId(eventId) || !isId(participantId)) return false;
+  const { rows } = await db.query(
+    'SELECT team_id IS NOT NULL AS has FROM participants WHERE event_id = $1 AND id = $2',
+    [eventId, participantId],
+  );
+  return Boolean(rows[0]?.has);
+}
+
 async function lateTeam(client, eventId, person, random) {
   const { rows } = await client.query(
     `SELECT t.id,
@@ -146,14 +157,16 @@ async function open(eventId, participantId, method = 'self', random = Math.rando
   return db.tx(async (client) => {
     const event = await lockEvent(client, eventId);
     if (!event.draw_open) throw new ValidationError(NOT_OPEN);
-    const { rows } = await client.query('SELECT * FROM participants WHERE event_id = $1 AND id = $2', [eventId, participantId]);
+    const { rows } = await client.query('SELECT * FROM participants WHERE event_id = $1 AND id = $2 FOR UPDATE', [eventId, participantId]);
     const person = rows[0];
     if (!person) return null;
     const existing = await revealOf(client, eventId, person.id);
     if (existing) return existing;
     let teamId = person.team_id;
     if (!teamId) {
-      if (person.attendance !== 'present') throw new ValidationError(ABSENT);
+      if (person.attendance !== 'present') {
+        throw new ValidationError(method === 'proxy' ? ABSENT_PROXY : ABSENT);
+      }
       teamId = await lateTeam(client, eventId, person, random);
       await client.query('UPDATE participants SET team_id = $3 WHERE event_id = $1 AND id = $2', [eventId, person.id, teamId]);
     }
@@ -231,5 +244,5 @@ async function board(eventId) {
 }
 
 module.exports = {
-  NOT_OPEN, ABSENT, findStartProblems, startProblems, start, reset, open, move, myResult, progress, board,
+  NOT_OPEN, ABSENT, ABSENT_PROXY, hasEnvelope, findStartProblems, startProblems, start, reset, open, move, myResult, progress, board,
 };

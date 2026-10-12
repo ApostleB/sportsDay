@@ -17,12 +17,12 @@
 <section class="card table-wrap">
   <h2>참가자 (<%= list.length %>명)</h2>
   <table>
-    <thead><tr><th>이름</th><th>출석</th><th>입장일</th><th>PIN 재설정</th></tr></thead>
+    <thead><tr><th>이름</th><th>출석</th><th>등록일</th><th>PIN 재설정</th></tr></thead>
     <tbody>
       <% list.forEach((p) => { %>
       <tr>
         <td><%= p.name %></td>
-        <td><%= p.attendance === 'present' ? '참석' : '미출석' %></td>
+        <td><%= p.attendance === 'present' ? '출석' : '결석' %></td>
         <td><%= fmtDateTime(p.created_at) %></td>
         <td>
           <form method="post" action="/admin/events/<%= event.id %>/participants/<%= p.id %>/pin" class="row">

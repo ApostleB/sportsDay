@@ -19,7 +19,7 @@
     bib.classList.add(`team-${data.team.color}`, 'reveal');
     const badge = bib.querySelector('.badge');
     badge.className = `badge team-${data.team.color}`;
-    badge.textContent = `${data.team.mark} ${data.team.name}팀`;
+    badge.textContent = `${data.team.mark} ${data.team.name.endsWith('팀') ? data.team.name : `${data.team.name}팀`}`;
     if (data.leaderName) {
       const leader = document.createElement('span');
       leader.className = 'badge';

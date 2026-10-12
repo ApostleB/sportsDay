@@ -12,11 +12,11 @@
   <p class="muted">팀 뽑기 준비 중이에요. 열리면 여기에서 뽑을 수 있어요.</p>
   <% } else if (mine) { %>
   <a class="btn btn-block" href="<%= base %>/teams">팀 현황 보기</a>
-  <% } else if (participant.attendance === 'absent' && !participant.team_id) { %>
+  <% } else if (participant.attendance === 'absent' && !hasEnvelope) { %>
   <p class="muted">결석으로 표시되어 있어요. 생성자에게 알려 주세요.</p>
   <% } else { %>
   <p><strong>팀 뽑기가 열렸어요</strong></p>
-  <a class="btn btn-primary btn-block" href="<%= base %>/draw">뽑기</a>
+  <a class="btn btn-primary btn-block draw-button" href="<%= base %>/draw">뽑기</a>
   <% } %>
 </section>
 <section class="card">

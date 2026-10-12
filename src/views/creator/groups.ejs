@@ -37,7 +37,7 @@
         <% list.forEach((p) => { %>
         <tr>
           <td><strong><%= p.name %></strong></td>
-          <td><%= p.attendance === 'present' ? '참석' : '미출석' %></td>
+          <td><%= p.attendance === 'present' ? '출석' : '결석' %></td>
           <td>
             <select name="g<%= p.id %>" aria-label="<%= p.name %> 그룹" <%= locked ? 'disabled' : '' %>>
               <option value="">그룹 없음</option>

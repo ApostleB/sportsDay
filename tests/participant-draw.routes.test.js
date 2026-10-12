@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const draw = require('../src/services/draw');
 const teams = require('../src/services/teams');
+const { ValidationError } = require('../src/services/errors');
 const { mulberry32 } = require('../src/services/draw-assign');
 
 test.beforeEach(H.resetDb);
@@ -117,4 +118,33 @@ test('팀 이름의 HTML과 </script>가 안전하게 들어간다', async () =>
   assert.ok(JSON.parse(json).some((t) => t.name === '</script><b>x'));
   assert.match(page.text, /&lt;\/script&gt;&lt;b&gt;x/);
   assert.doesNotMatch(page.text, /<b>x/);
+});
+
+test('요청 중에 초기화돼 닫히면 처음부터 닫힌 것과 같게 응답한다', async (t) => {
+  const { agent, base } = await setup();
+  t.mock.method(draw, 'open', async () => { throw new ValidationError(draw.NOT_OPEN); });
+  const json = await agent.post(`${base}/draw`).set('Accept', 'application/json').expect(409);
+  assert.equal(json.body.error, draw.NOT_OPEN);
+  const form = await agent.post(`${base}/draw`).expect(302);
+  assert.equal(form.headers.location, `${base}/home`);
+});
+
+test('팀 이름이 이미 팀으로 끝나면 팀을 또 붙이지 않는다', async () => {
+  const { event, agent, me, base } = await setup({ start: false });
+  const [first] = await teams.listTeams(event.id);
+  await H.db.query("UPDATE teams SET name = '청팀' WHERE id = $1", [first.id]);
+  await draw.start(event.id, mulberry32(11));
+  await H.db.query('UPDATE participants SET team_id = $2 WHERE id = $1', [me.id, first.id]);
+  await agent.post(`${base}/draw`).set('Accept', 'application/json').expect(200);
+  const page = await agent.get(`${base}/draw`).expect(200);
+  assert.match(page.text, /청팀<\/span>/);
+  assert.doesNotMatch(page.text, /청팀팀/);
+  const home = await agent.get(`${base}/home`).expect(200);
+  assert.doesNotMatch(home.text, /청팀팀/);
+});
+
+test('홈의 뽑기 링크는 큰 버튼이고, 봉투 유무는 화면 변수로만 쓴다', async () => {
+  const { agent, base } = await setup();
+  const home = await agent.get(`${base}/home`).expect(200);
+  assert.match(home.text, /class="btn btn-primary btn-block draw-button" href="[^"]*\/draw"/);
 });

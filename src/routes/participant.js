@@ -83,13 +83,14 @@ router.post('/join', async (req, res) => {
 });
 
 router.get('/home', requireParticipant, async (req, res) => {
-  const [announcementList, scheduleList, mine] = await Promise.all([
+  const [announcementList, scheduleList, mine, hasEnvelope] = await Promise.all([
     announcements.list(req.event.id),
     schedules.list(req.event.id),
     draw.myResult(req.event.id, req.participant.id),
+    draw.hasEnvelope(req.event.id, req.participant.id),
   ]);
   res.render('participant/home', {
-    title: req.event.title, announcements: announcementList, schedules: scheduleList, mine,
+    title: req.event.title, announcements: announcementList, schedules: scheduleList, mine, hasEnvelope,
   });
 });
 
@@ -100,11 +101,12 @@ router.get('/announcements/:id', requireParticipant, async (req, res) => {
 });
 
 async function renderDraw(req, res, { error = null, status = 200 } = {}) {
-  const [mine, teamList] = await Promise.all([
+  const [mine, teamList, hasEnvelope] = await Promise.all([
     draw.myResult(req.event.id, req.participant.id),
     teams.listTeams(req.event.id),
+    draw.hasEnvelope(req.event.id, req.participant.id),
   ]);
-  res.status(status).render('participant/draw', { title: '팀 뽑기', mine, teams: teamList, error });
+  res.status(status).render('participant/draw', { title: '팀 뽑기', mine, teams: teamList, hasEnvelope, error });
 }
 
 router.get('/draw', requireParticipant, async (req, res) => {
@@ -129,6 +131,10 @@ router.post('/draw', requireParticipant, async (req, res) => {
     res.redirect(303, `${res.locals.base}/draw`);
   } catch (err) {
     if (!(err instanceof ValidationError)) throw err;
+    // 요청 중에 초기화돼 닫힌 경우는 처음부터 닫혀 있던 것과 같게 응답한다
+    if (err.message === draw.NOT_OPEN) {
+      return wantsJson ? res.status(409).json({ error: draw.NOT_OPEN }) : res.redirect(`${res.locals.base}/home`);
+    }
     if (wantsJson) return res.status(400).json({ error: err.message });
     await renderDraw(req, res, { error: err.message, status: 400 });
   }

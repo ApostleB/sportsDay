@@ -39,7 +39,9 @@ async function requireParticipant(req, res, next) {
   }
   req.participant = participant;
   req.isCreator = Boolean(req.session.events[req.event.id].isCreator);
-  res.locals.participant = participant;
+  // 봉투(team_id)는 화면에 넘기지 않는다
+  const { team_id: _envelope, ...safe } = participant;
+  res.locals.participant = safe;
   res.locals.isCreator = req.isCreator;
   next();
 }

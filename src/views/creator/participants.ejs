@@ -6,10 +6,10 @@
   <button class="btn">참가자 추가</button>
 </form>
 <p class="hint">직접 추가한 참가자는 알려 준 이름과 PIN, 인증코드 <strong><%= event.auth_code %></strong>로 입장합니다.</p>
-<p class="muted">총 <%= list.length %>명 · 참석 <%= list.filter((p) => p.attendance === 'present').length %>명</p>
+<p class="muted">총 <%= list.length %>명 · 출석 <%= list.filter((p) => p.attendance === 'present').length %>명</p>
 <div class="table-wrap" style="margin-top:12px">
   <table>
-    <thead><tr><th>이름</th><th>입장일</th><th>출석</th><th></th></tr></thead>
+    <thead><tr><th>이름</th><th>등록일</th><th>출석</th><th></th></tr></thead>
     <tbody>
       <% list.forEach((p) => { const f = 'p-' + p.id; %>
       <tr>
@@ -17,8 +17,8 @@
         <td class="tnum"><%= fmtDateTime(p.created_at) %></td>
         <td>
           <select name="attendance" form="<%= f %>" aria-label="<%= p.name %> 출석 상태">
-            <option value="present" <%= p.attendance === 'present' ? 'selected' : '' %>>참석</option>
-            <option value="absent" <%= p.attendance === 'absent' ? 'selected' : '' %>>미출석</option>
+            <option value="present" <%= p.attendance === 'present' ? 'selected' : '' %>>출석</option>
+            <option value="absent" <%= p.attendance === 'absent' ? 'selected' : '' %>>결석</option>
           </select>
         </td>
         <td>

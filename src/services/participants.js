@@ -2,6 +2,7 @@ const db = require('../db');
 const codes = require('./codes');
 const { hashPin, comparePin } = require('./pins');
 const { ValidationError } = require('./errors');
+const { lockEvent } = require('./event-lock');
 
 const MISMATCH = '이미 사용 중인 이름이거나 PIN이 틀렸습니다';
 const ATTENDANCE = ['present', 'absent'];
@@ -62,17 +63,23 @@ async function setAttendance(eventId, id, attendance) {
   const value = String(attendance ?? '');
   if (!ATTENDANCE.includes(value)) throw new ValidationError('출석 상태 값이 올바르지 않습니다');
   if (!isId(id)) return null;
-  const { rows } = await db.query(
-    'UPDATE participants SET attendance = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
-    [eventId, id, value],
-  );
-  return rows[0] || null;
+  return db.tx(async (client) => {
+    await lockEvent(client, eventId);
+    const { rows } = await client.query(
+      'UPDATE participants SET attendance = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
+      [eventId, id, value],
+    );
+    return rows[0] || null;
+  });
 }
 
 async function deleteParticipant(eventId, id) {
   if (!isId(id)) return false;
-  const { rowCount } = await db.query('DELETE FROM participants WHERE event_id = $1 AND id = $2', [eventId, id]);
-  return rowCount > 0;
+  return db.tx(async (client) => {
+    await lockEvent(client, eventId);
+    const { rowCount } = await client.query('DELETE FROM participants WHERE event_id = $1 AND id = $2', [eventId, id]);
+    return rowCount > 0;
+  });
 }
 
 async function resetPin(eventId, id, pin) {
@@ -93,12 +100,16 @@ async function createParticipant(eventId, input) {
   const name = cleanName(input.name);
   const pin = String(input.pin ?? '');
   if (!codes.isPin4(pin)) throw new ValidationError('PIN은 숫자 4자리여야 합니다');
+  const pinHash = await hashPin(pin);
   try {
-    const { rows } = await db.query(
-      'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
-      [eventId, name, await hashPin(pin)],
-    );
-    return rows[0];
+    return await db.tx(async (client) => {
+      await lockEvent(client, eventId);
+      const { rows } = await client.query(
+        'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
+        [eventId, name, pinHash],
+      );
+      return rows[0];
+    });
   } catch (err) {
     if (err.code === '23505') throw duplicateName(name);
     throw err;

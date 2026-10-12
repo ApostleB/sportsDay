@@ -124,3 +124,20 @@ test('결석자 행에는 대신 뽑기가 없고 옮기기는 있다', async ()
   assert.doesNotMatch(row, /대신 뽑기/);
   assert.match(row, /옮기기/);
 });
+
+test('거부된 뽑기 변경 뒤에도 최신 열림 상태로 다시 그린다', async () => {
+  const { event, agent, base } = await setup();
+  await agent.post(`${base}/start`).expect(302);
+  const res = await agent.post(`${base}/start`).expect(400);
+  assert.match(res.text, /이미 팀 뽑기가 시작되었습니다/);
+  assert.equal(await drawOpen(event.id), true);
+  assert.doesNotMatch(res.text, /뽑기 시작<\/button>/);
+});
+
+test('출석·결석 표기를 통일한다', async () => {
+  const { event, agent } = await setup();
+  const res = await agent.get(`/e/${event.slug}/manage/participants`).expect(200);
+  assert.match(res.text, /등록일/);
+  assert.doesNotMatch(res.text, /입장일|미출석|>참석</);
+  assert.match(res.text, />결석</);
+});
