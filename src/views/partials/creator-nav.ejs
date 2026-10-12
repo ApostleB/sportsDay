@@ -1,12 +1,9 @@
-<nav class="nav">
-  <a href="<%= base %>/manage">대시보드</a>
-  <a href="<%= base %>/manage/event">운동회 정보</a>
-  <a href="<%= base %>/manage/participants">참가자</a>
-  <a href="<%= base %>/manage/announcements">공지</a>
-  <a href="<%= base %>/manage/schedules">시간표</a>
-  <a href="<%= base %>/manage/teams">팀 설정</a>
-  <a href="<%= base %>/manage/groups">그룹</a>
-  <a href="<%= base %>/manage/draw">팀 뽑기</a>
-  <% if (participant) { %><a href="<%= base %>/home">참가자 화면</a><% } %>
-  <% if (isAdmin) { %><a href="/admin">플랫폼 관리</a><% } %>
-</nav>
+<% const navItems = [['', '대시보드'], ['/event', '운동회 정보'], ['/participants', '참가자'], ['/teams', '팀 설정'], ['/groups', '그룹'], ['/draw', '팀 뽑기'], ['/announcements', '공지'], ['/schedules', '시간표']]; %>
+<details class="manage-menu">
+  <summary>☰ 메뉴</summary>
+  <nav class="manage-menu-list" aria-label="관리 메뉴">
+    <% navItems.forEach(([path, label]) => { const on = path === '' ? (navPath === '/' || navPath === '/created') : (navPath === path || navPath.startsWith(path + '/')); %>
+    <a href="<%= base %>/manage<%= path %>"<%- on ? ' aria-current="page"' : '' %>><%= label %></a>
+    <% }) %>
+  </nav>
+</details>

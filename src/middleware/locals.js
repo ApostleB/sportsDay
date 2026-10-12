@@ -4,6 +4,8 @@ function applyLocals(req, res) {
   Object.assign(res.locals, {
     title: '명량운동회',
     wide: false,
+    area: 'public',
+    navPath: '',
     error: null,
     message: null,
     isAdmin: Boolean(req.session?.admin),

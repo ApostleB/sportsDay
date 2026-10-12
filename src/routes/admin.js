@@ -41,7 +41,14 @@ router.post('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
-router.use(requireAdmin);
+// 로그인·로그아웃을 뺀 관리자 화면은 모두 관리 영역이다
+function adminArea(req, res, next) {
+  res.locals.area = 'admin';
+  res.locals.wide = true;
+  next();
+}
+
+router.use(requireAdmin, adminArea);
 
 router.get('/', async (req, res) => {
   res.render('admin/index', { title: '플랫폼 관리', wide: true, eventList: await events.listEvents() });

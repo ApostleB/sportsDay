@@ -1,5 +1,4 @@
 <h1 class="title">팀 뽑기</h1>
-<%- include('../partials/creator-nav') %>
 <%- include('../partials/alert') %>
 <% const revealed = new Map(); rows.forEach((r) => { if (r.shown_team_id) revealed.set(String(r.shown_team_id), (revealed.get(String(r.shown_team_id)) || 0) + 1); }); const teamById = new Map(teams.map((t) => [String(t.id), t])); const methodLabel = { self: '뽑음', proxy: '대리', manual: '수동', leader: '팀장' }; %>
 <section class="card">

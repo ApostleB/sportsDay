@@ -97,6 +97,24 @@ input[type=file] { padding: 10px; }
 /* 관리 화면 */
 .nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
 .nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 14px; text-decoration: none; }
+
+/* 관리 영역: 참가자 화면과 구분되는 차분한 배경과 상단 관리 막대 */
+body.area-manage { background: #EEF0F2; }
+.manage-bar { position: sticky; top: 0; z-index: 10; background: var(--ink); color: #fff; }
+.manage-bar :focus-visible { outline-color: var(--marker); }
+.manage-bar-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; max-width: 960px; min-height: 56px; margin: 0 auto; padding: 6px 16px; }
+.manage-tag { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--marker); color: var(--ink); font: 700 13px/1.2 'Noto Sans KR', sans-serif; }
+.manage-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 18px/1.2 'Jua', sans-serif; }
+.manage-links { display: flex; flex: none; gap: 4px; }
+.manage-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: #fff; font-size: 14px; text-decoration: none; }
+.manage-links a:hover { text-decoration: underline; }
+.manage-menu { position: relative; flex: none; }
+.manage-menu summary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid #fff; border-radius: 10px; color: #fff; font: 700 15px 'Noto Sans KR', sans-serif; list-style: none; cursor: pointer; }
+.manage-menu summary::-webkit-details-marker { display: none; }
+.manage-menu-list { position: absolute; left: 0; top: 52px; z-index: 20; display: grid; min-width: 200px; padding: 8px; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 12px; box-shadow: 3px 4px 0 var(--ink); }
+.manage-menu-list a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+.manage-menu-list a:hover { background: #F2E8DD; }
+.manage-menu-list a[aria-current="page"] { background: var(--ink); color: #fff; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
 .stats div { padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; color: var(--muted); font-size: 13px; }
 .stats strong { display: block; color: var(--ink); font: 400 30px/1.1 'Jua', sans-serif; }

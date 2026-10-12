@@ -1,5 +1,4 @@
 <h1 class="title">팀 설정</h1>
-<%- include('../partials/creator-nav') %>
 <%- include('../partials/alert') %>
 <% if (locked) { %><p class="alert alert-error">팀 뽑기가 진행 중이라 팀 설정을 바꿀 수 없습니다. 바꾸려면 팀 뽑기 화면에서 초기화하세요.</p><% } %>
 <form class="card row" method="post" action="<%= base %>/manage/teams/count">

@@ -57,6 +57,13 @@ router.post('/unlock', requireParticipant, async (req, res) => {
 });
 
 router.use(requireCreator);
+// 이 아래는 모두 관리 화면이다. 폭을 넓히고 관리 막대와 현재 메뉴 강조에 쓸 값을 넣는다
+router.use((req, res, next) => {
+  res.locals.area = 'manage';
+  res.locals.wide = true;
+  res.locals.navPath = req.path;
+  next();
+});
 
 router.get('/', async (req, res) => {
   const list = await participants.listParticipants(req.event.id);

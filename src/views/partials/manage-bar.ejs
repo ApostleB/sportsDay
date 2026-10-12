@@ -1,0 +1,11 @@
+<header class="manage-bar">
+  <div class="manage-bar-inner">
+    <% if (area === 'manage') { %><%- include('creator-nav') %><% } %>
+    <span class="manage-tag"><%= area === 'admin' ? '플랫폼 관리자' : '운동회 관리' %></span>
+    <span class="manage-name"><%= area === 'manage' && event ? event.title : '명량운동회' %></span>
+    <nav class="manage-links" aria-label="화면 이동">
+      <% if (area === 'manage' && participant) { %><a href="<%= base %>/home">참가자 화면으로</a><% } %>
+      <% if (area === 'manage' && isAdmin) { %><a href="/admin">플랫폼 관리</a><% } %>
+    </nav>
+  </div>
+</header>
