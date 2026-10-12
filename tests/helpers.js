@@ -71,6 +71,36 @@ async function addParticipant(eventId, name, { attendance = 'present', groupId =
   return rows[0];
 }
 
+async function manitoLinks(eventId) {
+  const { rows } = await db.query(
+    `SELECT giver_id::text AS giver, receiver_id::text AS receiver, acknowledged_at
+     FROM manito_links WHERE event_id = $1 ORDER BY giver_id`,
+    [eventId],
+  );
+  return rows;
+}
+
+// 마니또 불변식: 출석자가 2명 이상이면 출석자 전원이 하나의 고리, 아니면 빈 순환
+async function assertManitoCycle(eventId) {
+  const assert = require('node:assert/strict');
+  const { cycleOrder } = require('../src/services/manito-cycle');
+  const links = await manitoLinks(eventId);
+  const { rows } = await db.query(
+    "SELECT id::text AS id FROM participants WHERE event_id = $1 AND attendance = 'present'",
+    [eventId],
+  );
+  const ids = rows.map((r) => r.id).sort();
+  if (ids.length < 2) {
+    assert.deepEqual(links, [], '출석자가 2명 미만이면 순환이 비어 있어야 한다');
+    return links;
+  }
+  assert.deepEqual(links.map((l) => l.giver).sort(), ids, 'giver가 출석자 전원과 다르다');
+  assert.deepEqual(links.map((l) => l.receiver).sort(), ids, 'receiver가 출석자 전원과 다르다');
+  for (const l of links) assert.notEqual(l.giver, l.receiver);
+  assert.equal(cycleOrder(links).length, links.length, '하나의 고리가 아니다');
+  return links;
+}
+
 module.exports = {
-  getApp, resetDb, makeEvent, joinAgent, creatorAgent, adminAgent, addParticipant, request, EVENT_INPUT, db,
+  getApp, resetDb, makeEvent, joinAgent, creatorAgent, adminAgent, addParticipant, manitoLinks, assertManitoCycle, request, EVENT_INPUT, db,
 };
