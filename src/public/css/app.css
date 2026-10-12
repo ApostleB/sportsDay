@@ -130,5 +130,5 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .bib .band { display: none; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--team); }
 .bib[class*="team-"] .band { display: block; }
 .team-card { border-top: 6px solid var(--team); }
-.team-card h2 { justify-content: space-between; }
+.team-card h2 .muted { margin-left: auto; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .drum.shake, .reveal { animation: none; } }

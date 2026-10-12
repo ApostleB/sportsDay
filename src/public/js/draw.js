@@ -6,6 +6,7 @@
   const drum = document.getElementById('drum');
   const slot = document.getElementById('slot');
   const hint = document.getElementById('slotHint');
+  const errorBox = document.getElementById('drawError');
   const out = document.getElementById('drawResult');
   const controls = document.getElementById('drawControls');
   const homeLink = controls.querySelector('.btn-ghost');
@@ -41,7 +42,7 @@
     controls.replaceChildren(board, homeLink);
   }
 
-  // 0–600ms 흔들림, 600–2400ms 팀 이름이 감속하며 지나감, 2400–2800ms 결과 등장
+  // 0–600ms 흔들림, 600–2400ms 팀 이름이 감속하며 지나감, 2400–2800ms 결과 등장(400ms 연출)
   function play(data) {
     if (reduce) return show(data);
     const skip = document.createElement('button');
@@ -54,18 +55,25 @@
     drum.classList.remove('shake');
     void drum.offsetWidth;
     drum.classList.add('shake');
+    const steps = [];
     let t = 600;
     let delay = 60;
-    let i = 0;
+    let i = Math.floor(Math.random() * teams.length);
     while (t < 2400) {
-      const team = teams[i % teams.length];
-      timers.push(setTimeout(() => { slot.textContent = `${team.mark} ${team.name}`; }, t));
+      steps.push({ at: t, team: teams[i % teams.length] });
       t += delay;
       delay = Math.round(delay * 1.18);
       i += 1;
     }
-    timers.push(setTimeout(() => { slot.textContent = `${data.team.mark} ${data.team.name}`; }, 2400));
-    timers.push(setTimeout(() => show(data), 2800));
+    // 마지막으로 보이는 이름이 결과 팀이면 의미가 없으니 다음 팀으로 바꾼다
+    const last = steps[steps.length - 1];
+    if (teams.length > 1 && last.team.name === data.team.name && last.team.mark === data.team.mark) {
+      last.team = teams[(teams.indexOf(last.team) + 1) % teams.length];
+    }
+    steps.forEach((step) => {
+      timers.push(setTimeout(() => { slot.textContent = `${step.team.mark} ${step.team.name}`; }, step.at));
+    });
+    timers.push(setTimeout(() => show(data), 2400));
   }
 
   form.addEventListener('submit', async (event) => {
@@ -73,6 +81,7 @@
     const button = form.querySelector('button');
     button.disabled = true;
     hint.textContent = '팀 확인 중';
+    errorBox.hidden = true;
     let res;
     let data;
     try {
@@ -83,7 +92,9 @@
       return;
     }
     if (!res.ok || !data.team) {
-      hint.textContent = data.error || '뽑기에 실패했어요. 다시 눌러 주세요';
+      hint.textContent = '두근두근';
+      errorBox.textContent = data.error || '뽑기에 실패했어요. 다시 눌러 주세요';
+      errorBox.hidden = false;
       button.disabled = false;
       return;
     }

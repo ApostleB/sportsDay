@@ -45,7 +45,9 @@ test('시작 직후 안 뽑은 참가자의 화면에는 자기 팀이 드러나
   assert.match(page.text, /id="slot">\?</);
   const board = await agent.get(`${base}/teams`).expect(200);
   // 상단바의 내 이름은 제외하고 팀 목록만 본다
-  assert.doesNotMatch(board.text.slice(board.text.indexOf('</header>')), /철수/);
+  const cut0 = board.text.indexOf('</header>');
+  assert.ok(cut0 > 0);
+  assert.doesNotMatch(board.text.slice(cut0), /철수/);
   // 생성자 + 철수 + 참가자 6명 = 출석 8명, 팀장 없음
   assert.match(board.text, /아직 8명이 안 뽑았어요/);
 });
@@ -77,7 +79,12 @@ test('자바스크립트 없이 폼으로 뽑아도 결과 화면과 홈 배번�
   assert.match(home.text, new RegExp(`${expected}팀`));
   assert.match(home.text, /class="bib team-/);
   const board = await agent.get(`${base}/teams`).expect(200);
-  assert.match(board.text, /철수/);
+  const cut = board.text.indexOf('</header>');
+  assert.ok(cut > 0);
+  const cards = board.text.slice(cut).split('<section class="card team-card').slice(1);
+  const mine = cards.find((c) => c.includes('철수'));
+  assert.ok(mine, '철수가 팀 카드 안에 있어야 한다');
+  assert.ok(mine.includes(`${expected}</span>`) || mine.includes(` ${expected}`));
   assert.match(board.text, /아직 7명이 안 뽑았어요/);
 });
 
@@ -89,6 +96,8 @@ test('봉투 없는 결석자는 뽑을 수 없다', async () => {
   assert.equal(res.body.error, draw.ABSENT);
   const form = await agent.post(`${base}/draw`).expect(400);
   assert.match(form.text, /결석으로 표시되어 있어요/);
+  const page = await agent.get(`${base}/draw`).expect(200);
+  assert.doesNotMatch(page.text, /id="drawForm"/);
 });
 
 test('시작 뒤에 들어온 사람도 뽑을 수 있다', async () => {
@@ -102,7 +111,9 @@ test('팀 이름의 HTML과 </script>가 안전하게 들어간다', async () =>
   const { event, agent, base } = await setup();
   await H.db.query("UPDATE teams SET name = '</script><b>x' WHERE event_id = $1 AND sort_order = 0", [event.id]);
   const page = await agent.get(`${base}/draw`).expect(200);
-  assert.equal(page.text.split('</script>').length - 1, 2);
+  const json = page.text.match(/<script type="application\/json" id="drawTeams">([\s\S]*?)<\/script>/)[1];
+  assert.ok(!json.includes('</script>'));
+  assert.ok(JSON.parse(json).some((t) => t.name === '</script><b>x'));
   assert.match(page.text, /&lt;\/script&gt;&lt;b&gt;x/);
   assert.doesNotMatch(page.text, /<b>x/);
 });
