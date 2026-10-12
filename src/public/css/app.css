@@ -29,6 +29,7 @@ body.wide .container { max-width: 960px; }
 
 /* 상단 바 */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; margin: -20px -16px 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.topbar .btn { white-space: nowrap; }
 .topbar .brand { display: flex; align-items: center; min-height: 44px; min-width: 0; font: 400 18px/1.2 'Jua', sans-serif; text-decoration: none; }
 .topbar .brand span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); font: 500 14px 'Noto Sans KR', sans-serif; white-space: nowrap; cursor: pointer; }
@@ -105,7 +106,7 @@ body.area-manage { background: #EEF0F2; }
 .manage-tag { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--marker); color: var(--ink); font: 700 13px/1.2 'Noto Sans KR', sans-serif; }
 .manage-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 18px/1.2 'Jua', sans-serif; }
 .manage-links { display: flex; flex: none; gap: 4px; }
-.manage-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: #fff; font-size: 14px; text-decoration: none; }
+.manage-links a { display: inline-flex; white-space: nowrap; align-items: center; min-height: 44px; padding: 0 10px; color: #fff; font-size: 14px; text-decoration: none; }
 .manage-links a:hover { text-decoration: underline; }
 .manage-menu { position: relative; flex: none; }
 .manage-menu summary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid #fff; border-radius: 10px; color: #fff; font: 700 15px 'Noto Sans KR', sans-serif; list-style: none; cursor: pointer; }
@@ -124,6 +125,15 @@ th { padding: 12px; background: var(--sky); color: var(--ink); text-align: left;
 td { height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
 td a { display: inline-flex; align-items: center; min-height: 44px; }
 td input, td select { width: auto; min-height: 44px; padding: 6px 10px; font-size: 14px; }
+/* 표 안의 버튼·입력 줄은 꺾지 않고, 넓으면 표만 가로로 스크롤한다 */
+td .row, td form.row { flex-wrap: nowrap; }
+td .btn { white-space: nowrap; }
+/* 가로 스크롤해도 어느 행인지 보이도록 첫 열(이름)을 고정한다. 고정 셀은 배경을 채우고 행 구분선은 그림자로 대신한다 */
+.table-wrap th:first-child, .table-wrap td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.table-wrap td:first-child { box-shadow: inset 0 1px 0 var(--line); }
+.table-wrap th:first-child { background: var(--sky); }
+/* 카드 자체가 스크롤 컨테이너일 때 제목은 표와 함께 밀리지 않게 한다 */
+.card.table-wrap > h2 { position: sticky; left: 0; }
 hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 /* 팀 색. 색만으로 구분하지 않도록 화면에서는 항상 기호와 함께 쓴다 */
 .team-red { --team: var(--team-red); --team-ink: #fff; }
@@ -148,4 +158,8 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .bib[class*="team-"] .band { display: block; }
 .team-card { border-top: 6px solid var(--team); }
 .team-card h2 .muted { margin-left: auto; }
+/* 좁은 화면에서는 관리 막대의 운동회 제목을 아랫줄 전체 폭으로 내린다 */
+@media (max-width: 520px) {
+  .manage-name { order: 3; flex-basis: 100%; }
+}
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .drum.shake, .reveal { animation: none; } }
