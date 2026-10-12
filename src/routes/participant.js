@@ -18,7 +18,8 @@ function nameLimitKey(value) {
     return participants.cleanName(value).toLowerCase();
   } catch (err) {
     if (!(err instanceof ValidationError)) throw err;
-    return String(value ?? '').trim().slice(0, 40).toLowerCase();
+    // 어차피 거부될 입력은 별도 접두어로 묶어 정상 이름의 한도와 섞이지 않게 한다
+    return `invalid|${String(value ?? '').trim().slice(0, 40).toLowerCase()}`;
   }
 }
 
@@ -76,7 +77,7 @@ router.post('/join', async (req, res) => {
     pinVersion: participant.pin_version,
     ...(keepCreator && { creatorPinVersion: req.event.creator_pin_version }),
   });
-    res.redirect(`${res.locals.base}/home`);
+  res.redirect(`${res.locals.base}/home`);
 });
 
 router.get('/home', requireParticipant, async (req, res) => {
