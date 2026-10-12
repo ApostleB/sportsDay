@@ -135,11 +135,13 @@ td .btn { white-space: nowrap; }
 .table-wrap { scroll-padding-left: 120px; }
 /* 카드 자체가 스크롤 컨테이너일 때 제목은 표와 함께 밀리지 않게 한다 */
 .card.table-wrap > h2 { position: sticky; left: 0; }
-/* 카드 왼쪽 여백을 없애고 제목·첫 열이 직접 들여써서, 고정 열 왼쪽 틈으로 다른 열이 비치지 않게 한다 */
-.card.table-wrap, body.wide .card.table-wrap { padding-left: 0; padding-right: 0; }
-.card.table-wrap > h2 { padding-left: 16px; padding-right: 16px; }
-.card.table-wrap th:first-child, .card.table-wrap td:first-child { padding-left: 16px; }
-.card.table-wrap th:last-child, .card.table-wrap td:last-child { padding-right: 16px; }
+/* 카드 왼쪽 여백을 없애고 제목·첫 열이 직접 들여써서, 고정 열 왼쪽 틈으로 다른 열이 비치지 않게 한다 (좁은 화면에서만; 넓은 화면은 원래 카드 여백 유지) */
+@media (max-width: 767px) {
+  .card.table-wrap, body.wide .card.table-wrap { padding-left: 0; padding-right: 0; }
+  .card.table-wrap > h2 { padding-left: 16px; padding-right: 16px; }
+  .card.table-wrap th:first-child, .card.table-wrap td:first-child { padding-left: 16px; }
+  .card.table-wrap th:last-child, .card.table-wrap td:last-child { padding-right: 16px; }
+}
 hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 /* 팀 색. 색만으로 구분하지 않도록 화면에서는 항상 기호와 함께 쓴다 */
 .team-red { --team: var(--team-red); --team-ink: #fff; }
