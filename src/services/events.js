@@ -3,6 +3,7 @@ const codes = require('./codes');
 const { hashPin, comparePin } = require('./pins');
 const { ValidationError } = require('./errors');
 const { cleanName } = require('./participants');
+const { insertDefaultTeams } = require('./teams');
 
 const STATUSES = ['ready', 'live', 'closed'];
 const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
@@ -66,6 +67,7 @@ async function createEvent(input) {
       'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
       [event.id, creatorName, personalPinHash],
     );
+    await insertDefaultTeams(client, event.id);
     return { event, participant: rows[0] };
   });
 }

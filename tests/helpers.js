@@ -61,4 +61,16 @@ async function adminAgent() {
   return agent;
 }
 
-module.exports = { getApp, resetDb, makeEvent, joinAgent, creatorAgent, adminAgent, request, EVENT_INPUT, db };
+// 세션 없이 참가자 행만 만든다(입장 화면을 거치지 않는 서비스 테스트용)
+async function addParticipant(eventId, name, { attendance = 'present', groupId = null } = {}) {
+  const { rows } = await db.query(
+    `INSERT INTO participants (event_id, name, pin_hash, attendance, group_id)
+     VALUES ($1, $2, 'unused-hash', $3, $4) RETURNING *`,
+    [eventId, name, attendance, groupId],
+  );
+  return rows[0];
+}
+
+module.exports = {
+  getApp, resetDb, makeEvent, joinAgent, creatorAgent, adminAgent, addParticipant, request, EVENT_INPUT, db,
+};
