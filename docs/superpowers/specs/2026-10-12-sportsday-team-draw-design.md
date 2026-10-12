@@ -79,7 +79,7 @@ ALTER TABLE draw_results ADD COLUMN method text NOT NULL DEFAULT 'self'
 | `pink` | 핑크 | `#D6487E` | ♣ |
 | `black` | 블랙 | `#24211E` | ✚ |
 
-옐로우 위 글자는 잉크색, 나머지 팀 색 위 글자는 흰색이다. 팀 이름 기본값은 색 이름이다.
+옐로우·오렌지 위 글자는 잉크색, 나머지 팀 색 위 글자는 흰색이다(오렌지에 흰 글자는 대비가 부족하다). 팀 이름 기본값은 색 이름이다.
 
 ## 3. 생성자 화면 (`/e/:slug/manage/...`)
 
