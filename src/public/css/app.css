@@ -167,6 +167,24 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .team-card { border-top: 6px solid var(--team); }
 .team-card h2 .muted { margin-left: auto; }
 /* 좁은 화면에서는 관리 막대의 운동회 제목을 아랫줄 전체 폭으로 내린다 */
+/* 마니또 */
+.envelope-icon { margin: 0; font-size: 64px; line-height: 1; }
+.envelope { text-align: center; background: #FFF1E6; border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 4px 0 var(--ink); }
+.envelope summary { min-height: 52px; padding: 14px 16px; font-weight: 700; cursor: pointer; }
+.envelope[open] summary { border-bottom: 1px dashed var(--line); }
+.envelope .hint { margin: 12px 0 0; }
+.manito-name { margin: 4px 0 16px; font: 400 36px/1.2 'Jua', sans-serif; }
+.manito-map { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.manito-map li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.manito-from { font-weight: 700; }
+.manito-to { color: var(--muted); }
+@media (min-width: 768px) {
+  .manito-map.circle { position: relative; display: block; width: 420px; max-width: 100%; aspect-ratio: 1; margin: 16px auto 8px; border: 2px dashed var(--line); border-radius: 50%; }
+  .manito-map.circle li { position: absolute; left: 50%; top: 50%; width: 96px; margin: -22px 0 0 -48px; justify-content: center; padding: 8px 4px; text-align: center;
+    transform: rotate(calc(360deg / var(--n) * var(--i))) translateY(-175px) rotate(calc(-360deg / var(--n) * var(--i))); }
+  .manito-map.circle .manito-to { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
 @media (max-width: 520px) {
   .manage-name { order: 3; flex-basis: 100%; }
 }

@@ -19,6 +19,20 @@
   <a class="btn btn-primary btn-block draw-button" href="<%= base %>/draw">뽑기</a>
   <% } %>
 </section>
+<section class="card stack">
+  <h2>💌 내 마니또</h2>
+  <% if (!manito || manito.stage === 'none') { %>
+  <p class="muted">마니또 준비 중이에요.</p>
+  <% } else if (!manito.inCycle) { %>
+  <p class="muted">지금은 마니또가 없어요.</p>
+  <% } else if (!manito.acknowledged) { %>
+  <p><strong>봉투가 도착했어요</strong></p>
+  <a class="btn btn-primary btn-block" href="<%= base %>/manito">열어 보기</a>
+  <% } else { %>
+  <a class="btn btn-block" href="<%= base %>/manito">내 마니또 보기</a>
+  <% } %>
+  <% if (mapVisible) { %><a class="btn btn-block" href="<%= base %>/manito/map">마니또 맵 보기</a><% } %>
+</section>
 <section class="card">
   <h2>공지</h2>
   <% if (announcements.length === 0) { %><p class="muted">아직 공지가 없습니다.</p><% } %>

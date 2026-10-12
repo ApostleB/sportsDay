@@ -1,0 +1,17 @@
+<%- include('../partials/topbar') %>
+<h1 class="title">마니또 맵</h1>
+<% if (!cycle) { %>
+<section class="card"><p class="muted">아직 공개되지 않았어요.</p></section>
+<% } else if (cycle.length === 0) { %>
+<section class="card"><p class="muted">지금은 이어진 마니또가 없어요.</p></section>
+<% } else { %>
+<section class="card stack">
+  <p class="hint">화살표 앞사람이 뒷사람을 몰래 챙겨 준 마니또예요.<% if (cycle.length <= 16) { %> 넓은 화면에서는 시계 방향으로 이어져요.<% } %></p>
+  <ol class="manito-map<%= cycle.length <= 16 ? ' circle' : '' %>" style="--n: <%= cycle.length %>">
+    <% cycle.forEach((name, i) => { %>
+    <li style="--i: <%= i %>"><span class="manito-from"><%= name %></span><span class="manito-to">→ <%= cycle[(i + 1) % cycle.length] %></span></li>
+    <% }) %>
+  </ol>
+</section>
+<% } %>
+<p><a class="btn btn-small" href="<%= base %>/home">홈으로</a></p>

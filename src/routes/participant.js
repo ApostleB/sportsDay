@@ -4,6 +4,7 @@ const announcements = require('../services/announcements');
 const schedules = require('../services/schedules');
 const draw = require('../services/draw');
 const teams = require('../services/teams');
+const manito = require('../services/manito');
 const { ValidationError } = require('../services/errors');
 const { loadEvent, requireParticipant, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, clearEventEntry } = require('./helpers');
@@ -83,14 +84,21 @@ router.post('/join', async (req, res) => {
 });
 
 router.get('/home', requireParticipant, async (req, res) => {
-  const [announcementList, scheduleList, mine, hasEnvelope] = await Promise.all([
+  const [announcementList, scheduleList, mine, hasEnvelope, myManito] = await Promise.all([
     announcements.list(req.event.id),
     schedules.list(req.event.id),
     draw.myResult(req.event.id, req.participant.id),
     draw.hasEnvelope(req.event.id, req.participant.id),
+    manito.mine(req.event.id, req.participant.id),
   ]);
   res.render('participant/home', {
-    title: req.event.title, announcements: announcementList, schedules: scheduleList, mine, hasEnvelope,
+    title: req.event.title,
+    announcements: announcementList,
+    schedules: scheduleList,
+    mine,
+    hasEnvelope,
+    manito: myManito,
+    mapVisible: req.event.manito_stage === 'opened' && !req.event.manito_locked,
   });
 });
 
@@ -138,6 +146,20 @@ router.post('/draw', requireParticipant, async (req, res) => {
     if (wantsJson) return res.status(400).json({ error: err.message });
     await renderDraw(req, res, { error: err.message, status: 400 });
   }
+});
+
+router.get('/manito', requireParticipant, async (req, res) => {
+  const myManito = await manito.mine(req.event.id, req.participant.id);
+  res.render('participant/manito', { title: '내 마니또', manito: myManito, justOpened: req.query.opened === '1' });
+});
+
+router.post('/manito/open', requireParticipant, async (req, res) => {
+  const opened = await manito.acknowledge(req.event.id, req.participant.id);
+  res.redirect(303, `${res.locals.base}/manito${opened ? '?opened=1' : ''}`);
+});
+
+router.get('/manito/map', requireParticipant, async (req, res) => {
+  res.render('participant/manito-map', { title: '마니또 맵', cycle: await manito.map(req.event.id) });
 });
 
 router.get('/teams', requireParticipant, async (req, res) => {

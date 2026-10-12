@@ -1,0 +1,23 @@
+<%- include('../partials/topbar') %>
+<h1 class="title">💌 내 마니또</h1>
+<section class="card stack center">
+  <% if (!manito || manito.stage === 'none') { %>
+  <p class="muted">아직 마니또가 배정되지 않았어요.</p>
+  <% } else if (!manito.inCycle) { %>
+  <p class="muted">지금은 마니또가 없어요. 출석으로 바뀌면 자동으로 들어가요.</p>
+  <% } else if (!manito.acknowledged) { %>
+  <p class="envelope-icon" aria-hidden="true">✉️</p>
+  <p><strong>봉투가 도착했어요</strong></p>
+  <form method="post" action="<%= base %>/manito/open">
+    <button class="btn btn-primary btn-block">봉투 열기</button>
+  </form>
+  <p class="hint">주변에 화면을 보는 사람이 없는지 확인하세요.</p>
+  <% } else { %>
+  <details class="envelope"<%- justOpened ? ' open' : '' %>>
+    <summary>봉투를 눌러 펼치기·접기</summary>
+    <p class="hint">내가 몰래 챙겨 줄 사람</p>
+    <p class="manito-name"><%= manito.receiverName %></p>
+  </details>
+  <% } %>
+</section>
+<p><a class="btn btn-small" href="<%= base %>/home">홈으로</a></p>
