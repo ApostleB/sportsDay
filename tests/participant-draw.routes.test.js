@@ -81,10 +81,10 @@ test('자바스크립트 없이 폼으로 뽑아도 결과 화면과 홈 배번�
   const board = await agent.get(`${base}/teams`).expect(200);
   const cut = board.text.indexOf('</header>');
   assert.ok(cut > 0);
-  const cards = board.text.slice(cut).split('<section class="card team-card').slice(1);
-  const mine = cards.find((c) => c.includes('철수'));
-  assert.ok(mine, '철수가 팀 카드 안에 있어야 한다');
-  assert.ok(mine.includes(`${expected}</span>`) || mine.includes(` ${expected}`));
+  const cards = [...board.text.slice(cut).matchAll(/<section class="card team-card[^"]*">[\s\S]*?<\/section>/g)].map((m) => m[0]);
+  const withMe = cards.filter((c) => c.includes('철수'));
+  assert.equal(withMe.length, 1, '철수는 정확히 한 팀 카드에만 있어야 한다');
+  assert.match(withMe[0], new RegExp(`<span class="badge team-[^"]*">[^<]*${expected}</span>`));
   assert.match(board.text, /아직 7명이 안 뽑았어요/);
 });
 
@@ -96,6 +96,7 @@ test('봉투 없는 결석자는 뽑을 수 없다', async () => {
   assert.equal(res.body.error, draw.ABSENT);
   const form = await agent.post(`${base}/draw`).expect(400);
   assert.match(form.text, /결석으로 표시되어 있어요/);
+  assert.equal(form.text.split('결석으로 표시되어 있어요').length - 1, 1);
   const page = await agent.get(`${base}/draw`).expect(200);
   assert.doesNotMatch(page.text, /id="drawForm"/);
 });

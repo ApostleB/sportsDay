@@ -16,7 +16,7 @@
   <% if (mine) { %>
   <a class="btn btn-block" href="<%= base %>/teams">팀 현황 보기</a>
   <% } else if (participant.attendance === 'absent' && !participant.team_id) { %>
-  <p class="muted">결석으로 표시되어 있어요. 생성자에게 알려 주세요.</p>
+  <% if (!error) { %><p class="muted">결석으로 표시되어 있어요. 생성자에게 알려 주세요.</p><% } %>
   <% } else { %>
   <form id="drawForm" class="stack" method="post" action="<%= base %>/draw" data-teams-url="<%= base %>/teams">
     <button class="btn btn-primary draw-button">뽑기!</button>
