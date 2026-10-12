@@ -1,0 +1,28 @@
+<%- include('../partials/topbar') %>
+<h1 class="title center">팀 뽑기</h1>
+<%- include('../partials/alert') %>
+<div class="row" style="justify-content: center">
+  <% teams.forEach((t) => { %><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= t.name %></span><% }) %>
+</div>
+<div class="drum" id="drum">
+  <div>
+    <div class="slot" id="slot"><%= mine ? mine.team.mark + ' ' + mine.team.name : '?' %></div>
+    <div class="muted" id="slotHint"><%= mine ? '결과 발표' : '두근두근' %></div>
+  </div>
+</div>
+<div id="drawResult" aria-live="polite"><% if (mine) { %><%- include('../partials/bib', { result: mine }) %><% } %></div>
+<div id="drawControls" class="stack">
+  <% if (mine) { %>
+  <a class="btn btn-block" href="<%= base %>/teams">팀 현황 보기</a>
+  <% } else { %>
+  <form id="drawForm" class="stack" method="post" action="<%= base %>/draw" data-teams-url="<%= base %>/teams">
+    <button class="btn btn-primary draw-button">뽑기!</button>
+  </form>
+  <% } %>
+  <a class="btn btn-ghost btn-block" href="<%= base %>/home">홈으로</a>
+</div>
+<% if (!mine) { %>
+<template id="bibTemplate"><%- include('../partials/bib', { result: null }) %></template>
+<script type="application/json" id="drawTeams"><%- JSON.stringify(teams.map((t) => ({ name: t.name, mark: t.palette ? t.palette.mark : '' }))).replace(/</g, '\\u003c') %></script>
+<script src="/js/draw.js" defer></script>
+<% } %>

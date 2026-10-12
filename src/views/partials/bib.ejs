@@ -1,0 +1,11 @@
+<div class="bib<%= result ? ' team-' + result.team.color : '' %>" aria-label="내 배번표">
+  <div class="band"></div>
+  <div class="meta"><%= event.title %> 참가자</div>
+  <div class="name"><%= participant.name %></div>
+  <% if (result) { %>
+  <span class="badge team-<%= result.team.color %>"><%= result.team.mark %> <%= result.team.name %>팀</span>
+  <% if (result.leaderName) { %><span class="badge">팀장: <%= result.leaderName %></span><% } %>
+  <% } else { %>
+  <span class="badge">팀 배정 전</span>
+  <% } %>
+</div>

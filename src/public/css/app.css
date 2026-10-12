@@ -118,4 +118,17 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .team-pink { --team: var(--team-pink); --team-ink: #fff; }
 .team-black { --team: var(--team-black); --team-ink: #fff; }
 .badge[class*="team-"] { background: var(--team); color: var(--team-ink); }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+
+/* 팀 뽑기 */
+.drum { display: grid; place-items: center; width: 180px; aspect-ratio: 1; margin: 28px auto 24px; text-align: center; border: 3px solid var(--ink); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 30%, #FFE9D6 70%); box-shadow: 4px 5px 0 var(--ink); }
+.drum .slot { min-height: 34px; padding: 0 12px; font: 400 26px/1.2 'Jua', sans-serif; }
+.drum.shake { animation: shake 300ms ease-in-out 2; }
+@keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+.reveal { animation: reveal 400ms cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes reveal { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+.draw-button { width: 100%; min-height: 52px; }
+.bib .band { display: none; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--team); }
+.bib[class*="team-"] .band { display: block; }
+.team-card { border-top: 6px solid var(--team); }
+.team-card h2 { justify-content: space-between; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } .drum.shake, .reveal { animation: none; } }

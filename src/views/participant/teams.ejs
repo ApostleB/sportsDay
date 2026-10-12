@@ -1,0 +1,17 @@
+<%- include('../partials/topbar') %>
+<h1 class="title">팀 현황</h1>
+<% if (!event.draw_open) { %>
+<p class="card muted">팀 뽑기 준비 중이에요.</p>
+<% } else { %>
+<p class="muted">아직 <%= board.pending %>명이 안 뽑았어요. 새로고침하면 최신 결과가 보여요.</p>
+<% board.teams.forEach((t) => { %>
+<section class="card team-card team-<%= t.color %>">
+  <h2><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= t.name %></span><span class="muted"><%= t.members.length %>명</span></h2>
+  <% if (t.members.length === 0) { %><p class="muted">아직 아무도 없어요.</p><% } %>
+  <ul class="list">
+    <% t.members.forEach((m) => { %><li><%= m.name %><% if (m.is_leader) { %> <span class="badge">★ 팀장</span><% } %></li><% }) %>
+  </ul>
+</section>
+<% }) %>
+<% } %>
+<a class="btn btn-ghost btn-block" href="<%= base %>/home">홈으로</a>

@@ -2,6 +2,8 @@ const express = require('express');
 const participants = require('../services/participants');
 const announcements = require('../services/announcements');
 const schedules = require('../services/schedules');
+const draw = require('../services/draw');
+const teams = require('../services/teams');
 const { ValidationError } = require('../services/errors');
 const { loadEvent, requireParticipant, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, clearEventEntry } = require('./helpers');
@@ -81,17 +83,60 @@ router.post('/join', async (req, res) => {
 });
 
 router.get('/home', requireParticipant, async (req, res) => {
-  const [announcementList, scheduleList] = await Promise.all([
+  const [announcementList, scheduleList, mine] = await Promise.all([
     announcements.list(req.event.id),
     schedules.list(req.event.id),
+    draw.myResult(req.event.id, req.participant.id),
   ]);
-  res.render('participant/home', { title: req.event.title, announcements: announcementList, schedules: scheduleList });
+  res.render('participant/home', {
+    title: req.event.title, announcements: announcementList, schedules: scheduleList, mine,
+  });
 });
 
 router.get('/announcements/:id', requireParticipant, async (req, res) => {
   const announcement = await announcements.get(req.event.id, req.params.id);
   if (!announcement) return notFound(res);
   res.render('participant/announcement', { title: announcement.title, announcement });
+});
+
+async function renderDraw(req, res, { error = null, status = 200 } = {}) {
+  const [mine, teamList] = await Promise.all([
+    draw.myResult(req.event.id, req.participant.id),
+    teams.listTeams(req.event.id),
+  ]);
+  res.status(status).render('participant/draw', { title: '팀 뽑기', mine, teams: teamList, error });
+}
+
+router.get('/draw', requireParticipant, async (req, res) => {
+  if (!req.event.draw_open) return res.redirect(`${res.locals.base}/home`);
+  await renderDraw(req, res);
+});
+
+router.post('/draw', requireParticipant, async (req, res) => {
+  const wantsJson = req.accepts(['html', 'json']) === 'json';
+  if (!req.event.draw_open) {
+    return wantsJson ? res.status(409).json({ error: draw.NOT_OPEN }) : res.redirect(`${res.locals.base}/home`);
+  }
+  try {
+    const result = await draw.open(req.event.id, req.participant.id, 'self');
+    if (!result) return notFound(res);
+    if (wantsJson) {
+      return res.json({
+        team: { name: result.team.name, color: result.team.color, mark: result.team.mark },
+        leaderName: result.leaderName,
+      });
+    }
+    res.redirect(303, `${res.locals.base}/draw`);
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    if (wantsJson) return res.status(400).json({ error: err.message });
+    await renderDraw(req, res, { error: err.message, status: 400 });
+  }
+});
+
+router.get('/teams', requireParticipant, async (req, res) => {
+  const board = await draw.board(req.event.id);
+  res.render('participant/teams', { title: '팀 현황', board });
 });
 
 router.post('/logout', async (req, res) => {
