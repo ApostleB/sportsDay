@@ -11,7 +11,7 @@ const { createAttemptLimiter, TOO_MANY } = require('../middleware/attempt-limit'
 
 const router = express.Router({ mergeParams: true });
 const UNLOCK_WINDOW = 15 * 60 * 1000;
-const unlockIpLimiter = createAttemptLimiter({ max: 5, windowMs: UNLOCK_WINDOW });
+const unlockParticipantLimiter = createAttemptLimiter({ max: 5, windowMs: UNLOCK_WINDOW });
 const unlockEventLimiter = createAttemptLimiter({ max: 20, windowMs: UNLOCK_WINDOW });
 const manage = (res, path = '') => `${res.locals.base}/manage${path}`;
 
@@ -21,17 +21,28 @@ router.get('/unlock', requireParticipant, (req, res) => {
 });
 
 router.post('/unlock', requireParticipant, async (req, res) => {
-  const ipKey = `${req.ip}|unlock|${req.event.id}`;
+  const participantKey = `unlock|${req.event.id}|${req.participant.id}`;
   const eventKey = `unlock|${req.event.id}`;
-  if (unlockIpLimiter.isBlocked(ipKey) || unlockEventLimiter.isBlocked(eventKey)) {
-    return res.status(429).render('creator/unlock', { title: '생성자 확인', error: TOO_MANY });
+  const tooMany = () => res.status(429).render('creator/unlock', { title: '생성자 확인', error: TOO_MANY });
+  // 검증 전에 시도를 먼저 선점해 동시 요청으로 한도를 넘기지 못하게 한다
+  if (!unlockParticipantLimiter.hit(participantKey)) return tooMany();
+  if (!unlockEventLimiter.hit(eventKey)) {
+    unlockParticipantLimiter.undo(participantKey);
+    return tooMany();
   }
-  if (!(await events.verifyCreatorPin(req.event, req.body.pin))) {
-    unlockIpLimiter.recordFailure(ipKey);
-    unlockEventLimiter.recordFailure(eventKey);
+  let ok;
+  try {
+    ok = await events.verifyCreatorPin(req.event, req.body.pin);
+  } catch (err) {
+    unlockParticipantLimiter.undo(participantKey);
+    unlockEventLimiter.undo(eventKey);
+    throw err;
+  }
+  if (!ok) {
     return res.status(400).render('creator/unlock', { title: '생성자 확인', error: '정보가 일치하지 않습니다' });
   }
-  unlockIpLimiter.clear(ipKey);
+  unlockParticipantLimiter.clear(participantKey);
+  unlockEventLimiter.undo(eventKey);
   await regenerate(req);
   setEventEntry(req, req.event.id, {
     participantId: req.participant.id,

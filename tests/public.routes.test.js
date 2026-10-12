@@ -145,3 +145,25 @@ test('나가기를 하면 세션 id가 새로 발급된다', async () => {
   assert.ok(sid(out), '로그아웃 시 세션 쿠키가 다시 발급되어야 합니다');
   assert.notEqual(sid(out), sid(joined));
 });
+
+test('다른 계정이 성공 입장해도 피해자 이름의 실패 기록은 유지된다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const send = (name, pin) => agent.post(`/e/${event.slug}/join`).type('form').send({ name, pin, authCode: event.auth_code });
+  for (let i = 0; i < 5; i++) await send('생성자', '9999').expect(400);
+  await send('철수', '1234').expect(302);
+  for (let i = 0; i < 5; i++) await send('생성자', '9999').expect(400);
+  await send('철수', '1234').expect(302);
+  await send('생성자', '1111').expect(429);
+});
+
+test('같은 IP에서도 이름별로 따로 센다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = H.request.agent(H.getApp());
+  const send = (name, pin) => agent.post(`/e/${event.slug}/join`).type('form').send({ name, pin, authCode: event.auth_code });
+  for (let i = 0; i < 10; i++) await send('생성자', '9999').expect(400);
+  await send('생성자', '1111').expect(429);
+  await send('영희', '1234').expect(302);
+  // 이름의 대소문자·앞뒤 공백 차이로 제한을 피할 수 없다
+  await send('  생성자 ', '1111').expect(429);
+});

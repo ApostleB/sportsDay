@@ -8,7 +8,9 @@ const { regenerate, setEventEntry, clearEventEntry } = require('./helpers');
 const { createAttemptLimiter, TOO_MANY } = require('../middleware/attempt-limit');
 
 const router = express.Router({ mergeParams: true });
-const joinLimiter = createAttemptLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+const JOIN_WINDOW = 15 * 60 * 1000;
+const joinNameLimiter = createAttemptLimiter({ max: 10, windowMs: JOIN_WINDOW });
+const joinIpLimiter = createAttemptLimiter({ max: 30, windowMs: JOIN_WINDOW });
 
 router.use(loadEvent);
 
@@ -26,15 +28,25 @@ function renderJoin(req, res, status, error) {
 }
 
 router.post('/join', async (req, res) => {
-  const limitKey = `${req.ip}|join|${req.event.id}`;
-  if (joinLimiter.isBlocked(limitKey)) return renderJoin(req, res, 429, TOO_MANY);
+  // 이름 기준으로 센다: 같은 IP의 다른 이름 성공이 피해자 이름의 실패 기록을 지우지 못하게 한다
+  const nameKey = `join|${req.event.id}|${String(req.body.name ?? '').trim().toLowerCase()}`;
+  const ipKey = `join-ip|${req.event.id}|${req.ip}`;
+  // 검증 전에 시도를 먼저 선점해 동시 요청으로 한도를 넘기지 못하게 한다
+  if (!joinNameLimiter.hit(nameKey)) return renderJoin(req, res, 429, TOO_MANY);
+  if (!joinIpLimiter.hit(ipKey)) {
+    joinNameLimiter.undo(nameKey);
+    return renderJoin(req, res, 429, TOO_MANY);
+  }
   try {
     const participant = await participants.join(req.event, req.body);
-    joinLimiter.clear(limitKey);
+    joinNameLimiter.clear(nameKey);
+    // 성공은 IP 횟수에 세지 않는다. clear하지 않으므로 다른 계정 성공으로 실패 기록이 지워지지 않는다
+    joinIpLimiter.undo(ipKey);
     const previous = req.session.events?.[req.event.id];
-    // 같은 사람이 다시 입장했고 그 사이 생성자 PIN이 재설정되지 않았을 때만 생성자 권한을 유지한다
+    // 같은 사람이 다시 입장했고 그 사이 생성자 PIN과 개인 PIN이 재설정되지 않았을 때만 생성자 권한을 유지한다
     const keepCreator = Boolean(previous?.isCreator
       && String(previous.participantId) === String(participant.id)
+      && (previous.pinVersion ?? 0) === participant.pin_version
       && (previous.creatorPinVersion ?? 0) === req.event.creator_pin_version);
     await regenerate(req);
     setEventEntry(req, req.event.id, {
@@ -45,8 +57,12 @@ router.post('/join', async (req, res) => {
     });
     res.redirect(`${res.locals.base}/home`);
   } catch (err) {
-    if (!(err instanceof ValidationError)) throw err;
-    joinLimiter.recordFailure(limitKey);
+    // 검증 실패(ValidationError)는 선점한 시도를 그대로 둔다. 서버 오류는 사용자 잘못이 아니므로 되돌린다
+    if (!(err instanceof ValidationError)) {
+      joinNameLimiter.undo(nameKey);
+      joinIpLimiter.undo(ipKey);
+      throw err;
+    }
     renderJoin(req, res, 400, err.message);
   }
 });

@@ -170,3 +170,15 @@ test('생성자 PIN 재설정 후 다시 입장해도 생성자 권한은 돌아
   const res = await creator.get(`/e/${event.slug}/manage`).expect(302);
   assert.equal(res.headers.location, `/e/${event.slug}/manage/unlock`);
 });
+
+test('개인 PIN 재설정 후 같은 세션으로 재입장하면 생성자 권한이 없다', async () => {
+  const { event } = await H.makeEvent();
+  const creator = await H.creatorAgent(event);
+  const { rows } = await H.db.query('SELECT id FROM participants WHERE event_id = $1 AND name = $2', [event.id, '생성자']);
+  const admin = await H.adminAgent();
+  await admin.post(`/admin/events/${event.id}/participants/${rows[0].id}/pin`).type('form').send({ pin: '7777' }).expect(302);
+  await creator.post(`/e/${event.slug}/join`).type('form')
+    .send({ name: '생성자', pin: '7777', authCode: event.auth_code }).expect(302);
+  const res = await creator.get(`/e/${event.slug}/manage`).expect(302);
+  assert.equal(res.headers.location, `/e/${event.slug}/manage/unlock`);
+});

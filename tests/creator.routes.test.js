@@ -145,3 +145,23 @@ test('생성자 PIN을 5번 틀리면 맞는 PIN도 429, 초기화 후에는 성
   require('../src/middleware/attempt-limit').resetAllLimiters();
   await agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '123456' }).expect(302);
 });
+
+test('동시에 보낸 잘못된 PIN은 400이 최대 5개이고 나머지는 429다', async () => {
+  const { event } = await H.makeEvent();
+  const agent = await H.joinAgent(event, { name: '생성자', pin: '1111' });
+  const results = await Promise.all(Array.from({ length: 10 }, () => (
+    agent.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '000000' }).then((r) => r.status)
+  )));
+  assert.ok(results.filter((s) => s === 400).length <= 5, `400이 너무 많음: ${results}`);
+  assert.equal(results.filter((s) => s === 429).length, 10 - results.filter((s) => s === 400).length);
+  assert.equal(results.filter((s) => s === 429).length >= 5, true);
+});
+
+test('생성자 PIN 시도는 참가자별로 센다', async () => {
+  const { event } = await H.makeEvent();
+  const a = await H.joinAgent(event, { name: '생성자', pin: '1111' });
+  const b = await H.joinAgent(event, { name: '철수', pin: '1234' });
+  for (let i = 0; i < 5; i++) await a.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '000000' }).expect(400);
+  await a.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '123456' }).expect(429);
+  await b.post(`/e/${event.slug}/manage/unlock`).type('form').send({ pin: '000000' }).expect(400);
+});

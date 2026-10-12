@@ -22,11 +22,11 @@ router.get('/login', (req, res) => {
 
 router.post('/login', async (req, res) => {
   const limitKey = `${req.ip}|admin`;
-  if (loginLimiter.isBlocked(limitKey)) {
+  // 검증 전에 시도를 먼저 선점해 동시 요청으로 한도를 넘기지 못하게 한다
+  if (!loginLimiter.hit(limitKey)) {
     return res.status(429).render('admin/login', { title: '관리자 로그인', error: TOO_MANY });
   }
   if (!checkAdminPassword(req.body.password)) {
-    loginLimiter.recordFailure(limitKey);
     return res.status(401).render('admin/login', { title: '관리자 로그인', error: '정보가 일치하지 않습니다' });
   }
   loginLimiter.clear(limitKey);
