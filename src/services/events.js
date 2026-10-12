@@ -4,6 +4,7 @@ const { hashPin, comparePin } = require('./pins');
 const { ValidationError } = require('./errors');
 const { cleanName } = require('./participants');
 const { insertDefaultTeams } = require('./teams');
+const { lockEvent } = require('./event-lock');
 
 const STATUSES = ['ready', 'live', 'closed'];
 const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
@@ -135,6 +136,16 @@ async function deleteEvent(id) {
   });
 }
 
+// 참가 마감. 켜져 있으면 처음 보는 이름으로는 입장할 수 없다
+async function setJoinClosed(id, closed) {
+  if (!isId(id)) return false;
+  return db.tx(async (client) => {
+    await lockEvent(client, id);
+    await client.query('UPDATE events SET join_closed = $2 WHERE id = $1', [id, Boolean(closed)]);
+    return true;
+  });
+}
+
 module.exports = {
-  createEvent, getEventBySlug, getEventById, listEvents, updateEvent, verifyCreatorPin, setCreatorPin, deleteEvent,
+  setJoinClosed, createEvent, getEventBySlug, getEventById, listEvents, updateEvent, verifyCreatorPin, setCreatorPin, deleteEvent,
 };

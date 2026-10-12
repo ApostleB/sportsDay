@@ -3,9 +3,12 @@ const codes = require('./codes');
 const { hashPin, comparePin } = require('./pins');
 const { ValidationError } = require('./errors');
 const { lockEvent } = require('./event-lock');
+const { syncPresence } = require('./manito');
 
 const MISMATCH = '이미 사용 중인 이름이거나 PIN이 틀렸습니다';
 const ATTENDANCE = ['present', 'absent'];
+const JOIN_CLOSED = '참가가 마감되었습니다';
+const CLOSED = '종료된 운동회에는 새로 입장할 수 없습니다';
 
 const isId = (value) => /^[1-9]\d{0,17}$/.test(String(value));
 
@@ -34,16 +37,25 @@ async function join(event, input) {
     if (await comparePin(pin, existing.pin_hash)) return existing;
     throw new ValidationError(MISMATCH);
   }
-  if (event.status === 'closed') throw new ValidationError('종료된 운동회에는 새로 입장할 수 없습니다');
+  if (event.status === 'closed') throw new ValidationError(CLOSED);
+  if (event.join_closed) throw new ValidationError(JOIN_CLOSED);
 
+  const pinHash = await hashPin(pin);
   try {
-    const { rows } = await db.query(
-      'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
-      [event.id, name, await hashPin(pin)],
-    );
-    return rows[0];
+    return await db.tx(async (client) => {
+      // 화면을 연 뒤에 마감·종료되었을 수 있으므로 잠근 행으로 다시 확인한다
+      const fresh = await lockEvent(client, event.id);
+      if (fresh.status === 'closed') throw new ValidationError(CLOSED);
+      if (fresh.join_closed) throw new ValidationError(JOIN_CLOSED);
+      const { rows } = await client.query(
+        'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
+        [event.id, name, pinHash],
+      );
+      await syncPresence(client, event.id, rows[0].id);
+      return rows[0];
+    });
   } catch (err) {
-    if (err.code === '23505') throw new ValidationError(MISMATCH);
+    if (err.code === '23505' && err.table === 'participants') throw new ValidationError(MISMATCH);
     throw err;
   }
 }
@@ -69,6 +81,7 @@ async function setAttendance(eventId, id, attendance) {
       'UPDATE participants SET attendance = $3 WHERE event_id = $1 AND id = $2 RETURNING *',
       [eventId, id, value],
     );
+    if (rows[0]) await syncPresence(client, eventId, rows[0].id);
     return rows[0] || null;
   });
 }
@@ -77,6 +90,8 @@ async function deleteParticipant(eventId, id) {
   if (!isId(id)) return false;
   return db.tx(async (client) => {
     await lockEvent(client, eventId);
+    // 연결이 CASCADE로 지워지기 전에 앞사람을 다음 사람에게 이어 둔다
+    await syncPresence(client, eventId, id, { leaving: true });
     const { rowCount } = await client.query('DELETE FROM participants WHERE event_id = $1 AND id = $2', [eventId, id]);
     return rowCount > 0;
   });
@@ -108,10 +123,11 @@ async function createParticipant(eventId, input) {
         'INSERT INTO participants (event_id, name, pin_hash) VALUES ($1, $2, $3) RETURNING *',
         [eventId, name, pinHash],
       );
+      await syncPresence(client, eventId, rows[0].id);
       return rows[0];
     });
   } catch (err) {
-    if (err.code === '23505') throw duplicateName(name);
+    if (err.code === '23505' && err.table === 'participants') throw duplicateName(name);
     throw err;
   }
 }
@@ -142,6 +158,6 @@ async function updateParticipant(eventId, id, input) {
 }
 
 module.exports = {
-  MISMATCH, cleanName, join, listParticipants, getParticipant, setAttendance, deleteParticipant, resetPin,
+  MISMATCH, JOIN_CLOSED, cleanName, join, listParticipants, getParticipant, setAttendance, deleteParticipant, resetPin,
   createParticipant, updateParticipant,
 };
