@@ -35,7 +35,8 @@ test('팀이 없던 운동회도 뽑기 화면을 열면 기본 4팀이 생긴�
 });
 
 test('시작하면 진행표에 안 뽑은 사람의 팀이 드러나지 않는다', async () => {
-  const { event, people, agent, base } = await setup();
+  const { event, creator, people: others, agent, base } = await setup();
+  const people = [creator, ...others];
   const res = await agent.post(`${base}/start`).expect(302);
   assert.equal(res.headers.location, base);
   assert.equal(await drawOpen(event.id), true);
@@ -45,6 +46,9 @@ test('시작하면 진행표에 안 뽑은 사람의 팀이 드러나지 않는�
     assert.match(row, /안 뽑음/);
     assert.doesNotMatch(row, /badge team-/);
     assert.doesNotMatch(row, /<option value="\d+" selected>/);
+    const cells = [...row.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((m) => m[1].trim());
+    assert.equal(cells[3], '-');
+    for (const t of await teams.listTeams(event.id)) assert.ok(!cells[3].includes(t.name));
   }
   assert.match(page.text, /뽑기 초기화/);
 });
@@ -63,6 +67,11 @@ test('대신 뽑기와 팀 옮기기', async () => {
   assert.match(movedRow, /수동/);
   assert.match(movedRow, new RegExp(`badge team-${list[2].color}`));
   assert.match(movedRow, new RegExp(`<option value="${list[2].id}" selected>`));
+  assert.match(page.text, new RegExp(`data-team="${list[2].id}">1명 공개`));
+  const proxied = list.find((t) => rowOf(page.text, people[0].id).includes(`badge team-${t.color}`));
+  assert.match(page.text, new RegExp(`data-team="${proxied.id}">\\d+명 공개`));
+  assert.doesNotMatch(rowOf(page.text, people[0].id), /대신 뽑기/);
+  assert.match(rowOf(page.text, people[2].id), /대신 뽑기/);
   await agent.post(`${base}/proxy/999999`).expect(404);
   await agent.post(`${base}/move/${people[2].id}`).type('form').send({ teamId: '' }).expect(400);
   await agent.post(`${base}/move/${people[2].id}`).type('form').send({ teamId: '999999' }).expect(404);
@@ -85,7 +94,7 @@ test('초기화는 확인 문구가 맞아야 한다', async () => {
   const { event, agent, base } = await setup();
   await agent.post(`${base}/start`).expect(302);
   const bad = await agent.post(`${base}/reset`).type('form').send({ confirm: '네' }).expect(400);
-  assert.match(bad.text, /초기화/);
+  assert.match(bad.text, /확인 문구로/);
   assert.equal(await drawOpen(event.id), true);
   await agent.post(`${base}/reset`).type('form').send({ confirm: '초기화' }).expect(302);
   assert.equal(await drawOpen(event.id), false);
@@ -101,4 +110,13 @@ test('관리자는 뽑기를 진행할 수 있고 일반 참가자는 못 한다
   await admin.get(base).expect(200);
   await admin.post(`${base}/start`).expect(302);
   assert.equal(await drawOpen(event.id), true);
+});
+
+test('결석자 행에는 대신 뽑기가 없고 옮기기는 있다', async () => {
+  const { event, agent, base } = await setup();
+  const absent = await H.addParticipant(event.id, '결석자', { attendance: 'absent' });
+  await agent.post(`${base}/start`).expect(302);
+  const row = rowOf((await agent.get(base).expect(200)).text, absent.id);
+  assert.doesNotMatch(row, /대신 뽑기/);
+  assert.match(row, /옮기기/);
 });

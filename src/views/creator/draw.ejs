@@ -1,11 +1,11 @@
 <h1 class="title">팀 뽑기</h1>
 <%- include('../partials/creator-nav') %>
 <%- include('../partials/alert') %>
-<% const teamById = new Map(teams.map((t) => [String(t.id), t])); const methodLabel = { self: '뽑음', proxy: '대리', manual: '수동', leader: '팀장' }; %>
+<% const revealed = new Map(); rows.forEach((r) => { if (r.shown_team_id) revealed.set(String(r.shown_team_id), (revealed.get(String(r.shown_team_id)) || 0) + 1); }); const teamById = new Map(teams.map((t) => [String(t.id), t])); const methodLabel = { self: '뽑음', proxy: '대리', manual: '수동', leader: '팀장' }; %>
 <section class="card">
   <h2>팀</h2>
   <div class="row">
-    <% teams.forEach((t) => { %><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= t.name %><% if (t.leader_name) { %> · 팀장 <%= t.leader_name %><% } %></span><% }) %>
+    <% teams.forEach((t) => { %><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= t.name %><% if (t.leader_name) { %> · 팀장 <%= t.leader_name %><% } %><% if (open) { %> · <span class="team-count" data-team="<%= t.id %>"><%= revealed.get(String(t.id)) || 0 %>명 공개</span><% } %></span><% }) %>
   </div>
 </section>
 <% if (!open) { %>
