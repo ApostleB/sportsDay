@@ -7,6 +7,7 @@ const schedules = require('../services/schedules');
 const teams = require('../services/teams');
 const groups = require('../services/groups');
 const draw = require('../services/draw');
+const manito = require('../services/manito');
 const { scheduleUpload } = require('./upload');
 const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
@@ -73,6 +74,11 @@ router.get('/', async (req, res) => {
     total: list.length,
     present: list.filter((p) => p.attendance === 'present').length,
   });
+});
+
+router.post('/join-closed', async (req, res) => {
+  await events.setJoinClosed(req.event.id, req.body.closed === '1');
+  res.redirect(manage(res));
 });
 
 router.get('/created', (req, res) => {
@@ -351,5 +357,26 @@ router.post('/draw/start', (req, res) => drawAction(req, res, () => draw.start(r
 router.post('/draw/reset', (req, res) => drawAction(req, res, () => draw.reset(req.event.id, req.body.confirm)));
 router.post('/draw/proxy/:participantId', (req, res) => drawAction(req, res, () => draw.open(req.event.id, req.params.participantId, 'proxy')));
 router.post('/draw/move/:participantId', (req, res) => drawAction(req, res, () => draw.move(req.event.id, req.params.participantId, req.body.teamId)));
+
+async function renderManito(req, res, { error = null, status = 200 } = {}) {
+  const summary = await manito.summary(req.event.id);
+  res.status(status).render('creator/manito', { title: '마니또', summary, error });
+}
+
+// 마니또 화면의 POST는 모두 같은 방식으로 처리한다
+async function manitoAction(req, res, action) {
+  try {
+    await action();
+    res.redirect(manage(res, '/manito'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderManito(req, res, { error: err.message, status: 400 });
+  }
+}
+
+router.get('/manito', (req, res) => renderManito(req, res));
+router.post('/manito/assign', (req, res) => manitoAction(req, res, () => manito.assign(req.event.id)));
+router.post('/manito/reassign', (req, res) => manitoAction(req, res, () => manito.reassign(req.event.id, req.body.confirm)));
+router.post('/manito/open', (req, res) => manitoAction(req, res, () => manito.open(req.event.id)));
 
 module.exports = router;

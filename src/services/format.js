@@ -24,4 +24,7 @@ function fmtDateTime(value) {
 
 const statusLabel = (status) => STATUS_LABELS[status] || status;
 
-module.exports = { fmtDate, fmtDateTime, statusLabel };
+const MANITO_STAGE_LABELS = { none: '준비', assigned: '배정됨', opened: '공개됨' };
+const manitoStageLabel = (stage) => MANITO_STAGE_LABELS[stage] || stage;
+
+module.exports = { fmtDate, fmtDateTime, statusLabel, manitoStageLabel };

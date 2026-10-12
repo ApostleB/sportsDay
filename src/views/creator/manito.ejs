@@ -1,0 +1,43 @@
+<h1 class="title">마니또</h1>
+<%- include('../partials/alert') %>
+<section class="stats">
+  <div><strong><%= manitoStageLabel(summary.stage) %></strong>상태</div>
+  <div><strong class="tnum"><%= summary.size %></strong>순환 인원</div>
+  <div><strong class="tnum"><%= summary.acknowledgedCount %></strong>확인함</div>
+</section>
+<p class="hint">출석 <%= summary.presentCount %>명 · 누가 누구의 마니또인지는 공개 전에는 생성자에게도 보이지 않습니다.</p>
+<% if (summary.stage !== 'none' && summary.size < 3) { %>
+<p class="alert alert-error">순환 인원이 3명보다 적습니다</p>
+<% } %>
+<% if (summary.stage === 'none') { %>
+<section class="card stack">
+  <h2>마니또 배정</h2>
+  <p>출석한 참가자 전원을 하나의 순환으로 무작위 배정합니다. 출석이 3명 이상이어야 합니다.</p>
+  <form method="post" action="<%= base %>/manage/manito/assign"><button class="btn btn-primary">마니또 배정</button></form>
+  <p class="hint">배정 뒤에 결석·추가·삭제가 생기면 순환이 자동으로 고쳐집니다.</p>
+</section>
+<% } else if (summary.stage === 'assigned') { %>
+<section class="card stack">
+  <h2>전체 공개</h2>
+  <p>공개하면 참가자 모두가 마니또 맵을 볼 수 있습니다. 되돌릴 수 없습니다.</p>
+  <form method="post" action="<%= base %>/manage/manito/open"><button class="btn btn-primary">마니또 공개</button></form>
+</section>
+<section class="card stack">
+  <h2>다시 배정</h2>
+  <p class="hint">지금 출석한 사람으로 순환을 새로 만들고 모두의 확인 기록을 지웁니다. 계속하려면 "다시 배정"이라고 입력하세요.</p>
+  <form class="stack" method="post" action="<%= base %>/manage/manito/reassign">
+    <label>확인 문구<input name="confirm" autocomplete="off"></label>
+    <button class="btn btn-danger">다시 배정</button>
+  </form>
+</section>
+<% } else { %>
+<section class="card stack">
+  <h2>공개됨</h2>
+  <% if (summary.locked) { %>
+  <p>관리자가 맵을 잠갔습니다. 각자 자기 마니또 확인은 계속 됩니다.</p>
+  <% } else { %>
+  <p>참가자 모두가 마니또 맵을 볼 수 있습니다.</p>
+  <div><a class="btn" href="<%= base %>/manito/map">마니또 맵 보기</a></div>
+  <% } %>
+</section>
+<% } %>
