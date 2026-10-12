@@ -6,6 +6,7 @@ const announcements = require('../services/announcements');
 const schedules = require('../services/schedules');
 const teams = require('../services/teams');
 const groups = require('../services/groups');
+const draw = require('../services/draw');
 const { scheduleUpload } = require('./upload');
 const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
@@ -272,5 +273,35 @@ router.post('/groups', (req, res) => groupAction(req, res, () => groups.createGr
 router.post('/groups/members', (req, res) => groupAction(req, res, () => groups.saveMembership(req.event.id, req.body)));
 router.post('/groups/:id', (req, res) => groupAction(req, res, () => groups.renameGroup(req.event.id, req.params.id, req.body.name)));
 router.post('/groups/:id/delete', (req, res) => groupAction(req, res, () => groups.deleteGroup(req.event.id, req.params.id)));
+
+async function renderDraw(req, res, { error = null, status = 200 } = {}) {
+  await teams.ensureDefaultTeams(req.event.id);
+  const [teamList, rows, problems] = await Promise.all([
+    teams.listTeams(req.event.id),
+    draw.progress(req.event.id),
+    req.event.draw_open ? [] : draw.startProblems(req.event.id),
+  ]);
+  res.status(status).render('creator/draw', {
+    title: '팀 뽑기', wide: true, teams: teamList, rows, problems, open: req.event.draw_open, error,
+  });
+}
+
+// 뽑기 화면의 POST는 모두 같은 방식으로 처리한다. 결과가 null이면 없는 참가자·팀이다
+async function drawAction(req, res, action) {
+  try {
+    const result = await action();
+    if (result === null) return notFound(res);
+    res.redirect(manage(res, '/draw'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderDraw(req, res, { error: err.message, status: 400 });
+  }
+}
+
+router.get('/draw', (req, res) => renderDraw(req, res));
+router.post('/draw/start', (req, res) => drawAction(req, res, () => draw.start(req.event.id)));
+router.post('/draw/reset', (req, res) => drawAction(req, res, () => draw.reset(req.event.id, req.body.confirm)));
+router.post('/draw/proxy/:participantId', (req, res) => drawAction(req, res, () => draw.open(req.event.id, req.params.participantId, 'proxy')));
+router.post('/draw/move/:participantId', (req, res) => drawAction(req, res, () => draw.move(req.event.id, req.params.participantId, req.body.teamId)));
 
 module.exports = router;

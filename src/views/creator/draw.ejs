@@ -1,0 +1,67 @@
+<h1 class="title">팀 뽑기</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<% const teamById = new Map(teams.map((t) => [String(t.id), t])); const methodLabel = { self: '뽑음', proxy: '대리', manual: '수동', leader: '팀장' }; %>
+<section class="card">
+  <h2>팀</h2>
+  <div class="row">
+    <% teams.forEach((t) => { %><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= t.name %><% if (t.leader_name) { %> · 팀장 <%= t.leader_name %><% } %></span><% }) %>
+  </div>
+</section>
+<% if (!open) { %>
+<section class="card stack">
+  <h2>뽑기 시작</h2>
+  <% if (problems.length) { %>
+  <ul class="list"><% problems.forEach((p) => { %><li><%= p %></li><% }) %></ul>
+  <% } else { %>
+  <p>준비가 끝났어요. 시작하면 출석한 참가자 전원의 팀이 봉투에 담기고, 팀 설정과 그룹은 잠깁니다.</p>
+  <% } %>
+  <form class="stack" method="post" action="<%= base %>/manage/draw/start">
+    <button class="btn btn-primary"<%= problems.length ? ' disabled' : '' %>>뽑기 시작</button>
+  </form>
+  <p class="hint">결석으로 표시된 참가자는 봉투를 받지 않습니다. 시작 전에 출석을 확인하세요.</p>
+</section>
+<% } else { %>
+<% const shownCount = rows.filter((r) => r.method).length; const pendingCount = rows.filter((r) => !r.method && r.attendance === 'present').length; %>
+<section class="stats">
+  <div><strong><%= shownCount %></strong>공개</div>
+  <div><strong><%= pendingCount %></strong>안 뽑음</div>
+  <div><strong><%= teams.length %></strong>팀</div>
+</section>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>이름</th><th>그룹</th><th>상태</th><th>팀</th><th>대신 뽑기</th><th>팀 옮기기</th></tr></thead>
+    <tbody>
+      <% rows.forEach((r) => { const team = r.shown_team_id ? teamById.get(String(r.shown_team_id)) : null; const f = 'move-' + r.id; %>
+      <tr id="row-<%= r.id %>">
+        <td><strong><%= r.name %></strong><% if (r.attendance === 'absent') { %> <span class="muted">결석</span><% } %></td>
+        <td><%= r.group_name || '-' %></td>
+        <td><%= r.method ? methodLabel[r.method] : '안 뽑음' %></td>
+        <td><% if (team) { %><span class="badge team-<%= team.color %>"><%= team.palette ? team.palette.mark : '' %> <%= team.name %></span><% } else { %>-<% } %></td>
+        <td><% if (!r.method && r.attendance === 'present') { %>
+          <form method="post" action="<%= base %>/manage/draw/proxy/<%= r.id %>"><button class="btn btn-small">대신 뽑기</button></form>
+        <% } %></td>
+        <td><% if (!r.is_leader) { %>
+          <div class="row" style="flex-wrap: nowrap">
+            <select name="teamId" form="<%= f %>" aria-label="<%= r.name %> 옮길 팀">
+              <option value=""<%= team ? '' : ' selected' %>>팀 선택</option>
+              <% teams.forEach((t) => { %><option value="<%= t.id %>"<%= team && String(team.id) === String(t.id) ? ' selected' : '' %>><%= t.name %></option><% }) %>
+            </select>
+            <form id="<%= f %>" method="post" action="<%= base %>/manage/draw/move/<%= r.id %>"><button class="btn btn-small">옮기기</button></form>
+          </div>
+        <% } %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<p class="hint">아직 열지 않은 봉투의 팀은 생성자와 관리자에게도 보이지 않습니다. 안 뽑은 사람을 옮기면 그 순간 공개됩니다.</p>
+<section class="card stack">
+  <h2>뽑기 초기화</h2>
+  <p class="hint">봉투와 뽑은 결과, 수동 배치를 모두 지우고 준비 상태로 돌아갑니다. 계속하려면 "초기화"라고 입력하세요.</p>
+  <form class="stack" method="post" action="<%= base %>/manage/draw/reset">
+    <label>확인 문구<input name="confirm" autocomplete="off"></label>
+    <button class="btn btn-danger">초기화</button>
+  </form>
+</section>
+<% } %>
