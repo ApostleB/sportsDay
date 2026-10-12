@@ -42,15 +42,30 @@ function insertIntoCycle(links, id, random) {
   ];
 }
 
-// 숫자로 가장 작은 giver부터 고리를 따라간 순서. 하나의 고리가 아니면 길이가 links.length와 다르다
+// 숫자로 가장 작은 giver부터 고리를 따라간 순서. 닫히지 않은 고리(잃어버린 연결)는 빈 배열을 돌려준다. 다중 고리는 한 고리만 돌려주며 길이가 links.length와 다르다
 function cycleOrder(links) {
   if (links.length === 0) return [];
   const next = new Map(links.map((l) => [l.giver, l.receiver]));
   const start = [...next.keys()].reduce((a, b) => (BigInt(a) <= BigInt(b) ? a : b));
   const order = [start];
-  for (let cur = next.get(start); cur !== start && cur !== undefined && order.length <= links.length; cur = next.get(cur)) {
+  let cur = next.get(start);
+
+  while (cur !== start && cur !== undefined && order.length < links.length) {
     order.push(cur);
+    cur = next.get(cur);
   }
+
+  // 연결이 끊어진 경우 undefined를 만난다
+  if (cur === undefined) {
+    return [];
+  }
+
+  // 고리가 시작점으로 돌아오지 않는 경우 (잃어버린 연결)
+  if (cur !== start) {
+    return [];
+  }
+
+  // 유효한 고리: 하나의 고리이면 길이가 links.length와 같고, 다중 고리면 다르다
   return order;
 }
 

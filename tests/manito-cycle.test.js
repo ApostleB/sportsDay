@@ -74,6 +74,7 @@ test('insertIntoCycle: 2명 순환에 끼우면 3명, 빈 순환과 이미 있�
   assertCycle(insertIntoCycle(two, '3', mulberry32(2)), ['1', '2', '3']);
   assert.deepEqual(insertIntoCycle([], '1', mulberry32(1)), []);
   assert.deepEqual(insertIntoCycle(two, '1', mulberry32(1)), two);
+  assert.notEqual(insertIntoCycle(two, '1', mulberry32(1)), two, '복사본을 돌려줘야 한다');
 });
 
 test('빼기·끼우기를 수백 번 섞어도 항상 하나의 고리이고 바뀐 기존 giver는 최대 1명', () => {
@@ -103,4 +104,18 @@ test('cycleOrder: 가장 작은 id부터 고리 순서, 고리가 둘이면 길�
   assert.deepEqual(cycleOrder([]), []);
   const broken = [{ giver: '1', receiver: '2' }, { giver: '2', receiver: '1' }, { giver: '3', receiver: '4' }, { giver: '4', receiver: '3' }];
   assert.equal(cycleOrder(broken).length, 2);
+});
+
+test('cycleOrder: 닫히지 않은 고리는 빈 배열을 돌려준다', () => {
+  // 두 개의 분리된 연결: 1→2, 3→4
+  const separated = [{ giver: '1', receiver: '2' }, { giver: '3', receiver: '4' }];
+  assert.deepEqual(cycleOrder(separated), [], '분리된 연결은 고리가 아니다');
+
+  // 잃어버린 연결이 있는 체인: 1→2→3 (3의 다음이 없음)
+  const missingLink = [{ giver: '1', receiver: '2' }, { giver: '2', receiver: '3' }];
+  assert.deepEqual(cycleOrder(missingLink), [], '잃어버린 연결이 있는 체인은 고리가 아니다');
+
+  // 다중 고리: 1→2, 2→1, 3→4, 4→3 (두 개의 분리된 고리)
+  const multiCycle = [{ giver: '1', receiver: '2' }, { giver: '2', receiver: '1' }, { giver: '3', receiver: '4' }, { giver: '4', receiver: '3' }];
+  assert.ok(cycleOrder(multiCycle).length !== multiCycle.length, '다중 고리는 links.length와 길이가 다르다');
 });
