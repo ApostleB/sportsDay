@@ -95,3 +95,29 @@ test('늦은 배정은 인원이 가장 적은 팀, 그중 그 그룹이 가장 
   const picked = new Set(Array.from({ length: 40 }, (_, i) => assignLate({ teams: tie, random: mulberry32(i + 1) })));
   assert.deepEqual([...picked].sort(), ['a', 'b']);
 });
+
+test('팀장 둘이 있어 남은 자리가 같아도 팀장의 그룹이 인원으로 세어진다', () => {
+  const teams = [
+    { id: 't0', leader: { id: 'L', groupKey: 'A' } },
+    { id: 't1', leader: { id: 'M', groupKey: 'solo:M' } },
+  ];
+  const members = [{ id: 'a', groupKey: 'A' }, { id: 'x', groupKey: 'solo:x' }];
+  for (let seed = 1; seed <= 50; seed++) {
+    const { assignment, penalty } = assignAll({ teams, members, random: mulberry32(seed) });
+    assert.equal(assignment.get('a'), 't1', `seed ${seed}`);
+    assert.equal(penalty, 0, `seed ${seed}`);
+  }
+});
+
+test('여러 번 시도하면 첫 시도보다 나쁘지 않고, 더 나아지는 경우가 있다', () => {
+  let improved = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const { teams, members } = scenario(mulberry32(seed), true);
+    // 같은 시드의 첫 시도는 attempts: 1 결과와 같으므로 최선은 그보다 나쁠 수 없다
+    const first = assignAll({ teams, members, random: mulberry32(seed + 1000), attempts: 1 });
+    const best = assignAll({ teams, members, random: mulberry32(seed + 1000), attempts: 200 });
+    assert.ok(best.penalty <= first.penalty, `seed ${seed}`);
+    if (best.penalty < first.penalty) improved++;
+  }
+  assert.ok(improved > 0, '재시도로 나아지는 경우가 한 번도 없음');
+});
