@@ -39,6 +39,7 @@ async function loadPeople(client, eventId) {
 }
 
 async function startProblems(eventId) {
+  if (!isId(eventId)) return ['운동회를 찾을 수 없습니다'];
   const [teamList, people] = await Promise.all([listTeams(eventId), loadPeople(db, eventId)]);
   return findStartProblems(teamList, people);
 }
@@ -68,7 +69,7 @@ async function start(eventId, random = Math.random) {
     const pids = [];
     const tids = [];
     for (const t of teamList) {
-      if (t.leader_participant_id) { pids.push(String(t.leader_participant_id)); tids.push(String(t.id)); }
+      if (t.leader_participant_id && byId.has(String(t.leader_participant_id))) { pids.push(String(t.leader_participant_id)); tids.push(String(t.id)); }
     }
     for (const [pid, tid] of assignment) { pids.push(pid); tids.push(tid); }
 
@@ -83,8 +84,9 @@ async function start(eventId, random = Math.random) {
     // 팀장은 시작과 동시에 공개된다
     await client.query(
       `INSERT INTO draw_results (event_id, participant_id, team_id, method)
-       SELECT $1, leader_participant_id, id, 'leader' FROM teams
-       WHERE event_id = $1 AND leader_participant_id IS NOT NULL`,
+       SELECT $1, t.leader_participant_id, t.id, 'leader' FROM teams t
+       JOIN participants p ON p.id = t.leader_participant_id AND p.event_id = t.event_id
+       WHERE t.event_id = $1 AND t.leader_participant_id IS NOT NULL`,
       [eventId],
     );
     await client.query('UPDATE events SET draw_open = true WHERE id = $1', [eventId]);
@@ -106,7 +108,7 @@ async function revealOf(client, eventId, participantId) {
   const { rows } = await client.query(
     `SELECT d.method, t.id AS team_id, t.name AS team_name, t.color, l.name AS leader_name
      FROM draw_results d
-     JOIN teams t ON t.id = d.team_id
+     JOIN teams t ON t.id = d.team_id AND t.event_id = d.event_id
      LEFT JOIN participants l ON l.id = t.leader_participant_id AND l.event_id = t.event_id
      WHERE d.event_id = $1 AND d.participant_id = $2`,
     [eventId, participantId],
@@ -122,6 +124,7 @@ async function revealOf(client, eventId, participantId) {
 }
 
 async function myResult(eventId, participantId) {
+  if (!isId(eventId)) return null;
   if (!isId(participantId)) return null;
   return revealOf(db, eventId, participantId);
 }
@@ -129,8 +132,8 @@ async function myResult(eventId, participantId) {
 async function lateTeam(client, eventId, person, random) {
   const { rows } = await client.query(
     `SELECT t.id,
-       (SELECT count(*)::int FROM participants p WHERE p.team_id = t.id) AS size,
-       (SELECT count(*)::int FROM participants p WHERE p.team_id = t.id AND p.group_id = $2::bigint) AS group_count
+       (SELECT count(*)::int FROM participants p WHERE p.team_id = t.id AND p.event_id = t.event_id) AS size,
+       (SELECT count(*)::int FROM participants p WHERE p.team_id = t.id AND p.event_id = t.event_id AND p.group_id = $2::bigint) AS group_count
      FROM teams t WHERE t.event_id = $1 ORDER BY t.sort_order, t.id`,
     [eventId, person.group_id],
   );
@@ -138,6 +141,7 @@ async function lateTeam(client, eventId, person, random) {
 }
 
 async function open(eventId, participantId, method = 'self', random = Math.random) {
+  if (method !== 'self' && method !== 'proxy') throw new ValidationError('뽑기 방식 값이 올바르지 않습니다');
   if (!isId(participantId)) return null;
   return db.tx(async (client) => {
     const event = await lockEvent(client, eventId);
@@ -175,7 +179,8 @@ async function move(eventId, participantId, teamId) {
     await client.query('UPDATE participants SET team_id = $3 WHERE event_id = $1 AND id = $2', [eventId, person.id, team.id]);
     await client.query(
       `INSERT INTO draw_results (event_id, participant_id, team_id, method) VALUES ($1, $2, $3, 'manual')
-       ON CONFLICT (participant_id) DO UPDATE SET team_id = EXCLUDED.team_id, method = 'manual', drawn_at = now()`,
+       ON CONFLICT (participant_id) DO UPDATE SET team_id = EXCLUDED.team_id, method = 'manual', drawn_at = now()
+       WHERE draw_results.event_id = EXCLUDED.event_id`,
       [eventId, person.id, team.id],
     );
     return revealOf(client, eventId, person.id);
@@ -184,12 +189,13 @@ async function move(eventId, participantId, teamId) {
 
 // 생성자 진행표. 봉투는 읽지 않고 공개 기록만 읽는다
 async function progress(eventId) {
+  if (!isId(eventId)) return [];
   const { rows } = await db.query(
     `SELECT p.id, p.name, p.attendance, g.name AS group_name, d.method, d.team_id AS shown_team_id,
        EXISTS (SELECT 1 FROM teams t WHERE t.event_id = p.event_id AND t.leader_participant_id = p.id) AS is_leader
      FROM participants p
-     LEFT JOIN groups g ON g.id = p.group_id
-     LEFT JOIN draw_results d ON d.participant_id = p.id
+     LEFT JOIN groups g ON g.id = p.group_id AND g.event_id = p.event_id
+     LEFT JOIN draw_results d ON d.participant_id = p.id AND d.event_id = p.event_id
      WHERE p.event_id = $1
      ORDER BY p.created_at, p.id`,
     [eventId],
@@ -198,12 +204,13 @@ async function progress(eventId) {
 }
 
 async function board(eventId) {
+  if (!isId(eventId)) return { teams: [], pending: 0 };
   const teamList = await listTeams(eventId);
   const { rows } = await db.query(
     `SELECT d.team_id, p.name, coalesce(t.leader_participant_id = p.id AND p.event_id = t.event_id, false) AS is_leader
      FROM draw_results d
-     JOIN participants p ON p.id = d.participant_id
-     JOIN teams t ON t.id = d.team_id
+     JOIN participants p ON p.id = d.participant_id AND p.event_id = d.event_id
+     JOIN teams t ON t.id = d.team_id AND t.event_id = d.event_id
      WHERE d.event_id = $1
      ORDER BY is_leader DESC, d.drawn_at, d.id`,
     [eventId],
