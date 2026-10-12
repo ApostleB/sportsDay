@@ -1,0 +1,54 @@
+<h1 class="title">그룹</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<% if (locked) { %><p class="alert alert-error">팀 뽑기가 진행 중이라 그룹을 바꿀 수 없습니다. 바꾸려면 팀 뽑기 화면에서 초기화하세요.</p><% } %>
+<p class="hint">같은 그룹에 넣은 사람들은 팀 뽑기에서 서로 다른 팀으로 흩어집니다. 그룹이 없는 사람은 혼자인 그룹으로 칩니다.</p>
+<form class="card row" method="post" action="<%= base %>/manage/groups">
+  <label style="flex: 1">새 그룹 이름<input name="name" maxlength="20" <%= locked ? 'disabled' : '' %>></label>
+  <button class="btn" <%= locked ? 'disabled' : '' %>>그룹 추가</button>
+</form>
+<% if (groups.length) { %>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>그룹</th><th>인원</th><th></th></tr></thead>
+    <tbody>
+      <% groups.forEach((g) => { const f = 'group-' + g.id; %>
+      <tr>
+        <td><input name="name" form="<%= f %>" value="<%= g.name %>" maxlength="20" aria-label="<%= g.name %> 그룹 이름" <%= locked ? 'disabled' : '' %>></td>
+        <td class="tnum"><%= g.member_count %>명</td>
+        <td>
+          <div class="row">
+            <form id="<%= f %>" method="post" action="<%= base %>/manage/groups/<%= g.id %>"><button class="btn btn-small" <%= locked ? 'disabled' : '' %>>이름 저장</button></form>
+            <form method="post" action="<%= base %>/manage/groups/<%= g.id %>/delete" data-msg="<%= g.name %> 그룹을 지울까요? 소속 참가자는 그룹 없음이 됩니다." onsubmit="return confirm(this.dataset.msg)">
+              <button class="btn btn-small btn-danger" <%= locked ? 'disabled' : '' %>>삭제</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+<form class="stack" method="post" action="<%= base %>/manage/groups/members" style="margin-top: 12px">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>이름</th><th>출석</th><th>그룹</th></tr></thead>
+      <tbody>
+        <% list.forEach((p) => { %>
+        <tr>
+          <td><strong><%= p.name %></strong></td>
+          <td><%= p.attendance === 'present' ? '참석' : '미출석' %></td>
+          <td>
+            <select name="g<%= p.id %>" aria-label="<%= p.name %> 그룹" <%= locked ? 'disabled' : '' %>>
+              <option value="">그룹 없음</option>
+              <% groups.forEach((g) => { %><option value="<%= g.id %>" <%= String(p.group_id ?? '') === String(g.id) ? 'selected' : '' %>><%= g.name %></option><% }) %>
+            </select>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% if (!locked) { %><button class="btn btn-primary">그룹 저장</button><% } %>
+</form>

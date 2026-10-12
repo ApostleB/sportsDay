@@ -4,6 +4,8 @@ const participants = require('../services/participants');
 const { ValidationError } = require('../services/errors');
 const announcements = require('../services/announcements');
 const schedules = require('../services/schedules');
+const teams = require('../services/teams');
+const groups = require('../services/groups');
 const { scheduleUpload } = require('./upload');
 const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
@@ -208,5 +210,67 @@ router.post('/schedules/:id/delete', async (req, res) => {
   await schedules.remove(req.event.id, req.params.id);
   res.redirect(manage(res, '/schedules'));
 });
+
+async function renderTeams(req, res, { error = null, values = null, status = 200 } = {}) {
+  await teams.ensureDefaultTeams(req.event.id);
+  const [teamList, people] = await Promise.all([
+    teams.listTeams(req.event.id),
+    participants.listParticipants(req.event.id),
+  ]);
+  res.status(status).render('creator/teams', {
+    title: '팀 설정', wide: true, teams: teamList, people, palette: teams.PALETTE, values, error, locked: req.event.draw_open,
+  });
+}
+
+router.get('/teams', (req, res) => renderTeams(req, res));
+
+router.post('/teams/count', async (req, res) => {
+  try {
+    await teams.setTeamCount(req.event.id, req.body.count);
+    res.redirect(manage(res, '/teams'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderTeams(req, res, { error: err.message, status: 400 });
+  }
+});
+
+router.post('/teams', async (req, res) => {
+  try {
+    await teams.saveTeams(req.event.id, req.body);
+    res.redirect(manage(res, '/teams'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderTeams(req, res, { error: err.message, values: req.body, status: 400 });
+  }
+});
+
+async function renderGroups(req, res, { error = null, status = 200 } = {}) {
+  const [groupList, list] = await Promise.all([
+    groups.listGroups(req.event.id),
+    participants.listParticipants(req.event.id),
+  ]);
+  res.status(status).render('creator/groups', {
+    title: '그룹', wide: true, groups: groupList, list, error, locked: req.event.draw_open,
+  });
+}
+
+// 그룹 화면의 POST는 모두 같은 방식으로 처리한다. 결과가 null/false면 없는 그룹이다
+async function groupAction(req, res, action) {
+  try {
+    const result = await action();
+    if (result === null || result === false) return notFound(res);
+    res.redirect(manage(res, '/groups'));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderGroups(req, res, { error: err.message, status: 400 });
+  }
+}
+
+router.get('/groups', (req, res) => renderGroups(req, res));
+router.post('/groups', (req, res) => groupAction(req, res, () => groups.createGroup(req.event.id, req.body.name)));
+// /groups/:id보다 먼저 등록해야 members가 id로 해석되지 않는다
+router.post('/groups/members', (req, res) => groupAction(req, res, () => groups.saveMembership(req.event.id, req.body)));
+router.post('/groups/:id', (req, res) => groupAction(req, res, () => groups.renameGroup(req.event.id, req.params.id, req.body.name)));
+router.post('/groups/:id/delete', (req, res) => groupAction(req, res, () => groups.deleteGroup(req.event.id, req.params.id)));
 
 module.exports = router;

@@ -1,0 +1,40 @@
+<h1 class="title">팀 설정</h1>
+<%- include('../partials/creator-nav') %>
+<%- include('../partials/alert') %>
+<% if (locked) { %><p class="alert alert-error">팀 뽑기가 진행 중이라 팀 설정을 바꿀 수 없습니다. 바꾸려면 팀 뽑기 화면에서 초기화하세요.</p><% } %>
+<form class="card row" method="post" action="<%= base %>/manage/teams/count">
+  <label style="flex: 1">팀 수
+    <select name="count" <%= locked ? 'disabled' : '' %>>
+      <% for (let n = 2; n <= 8; n++) { %><option value="<%= n %>" <%= n === teams.length ? 'selected' : '' %>><%= n %>팀</option><% } %>
+    </select>
+  </label>
+  <button class="btn" <%= locked ? 'disabled' : '' %>>팀 수 변경</button>
+</form>
+<form class="stack" method="post" action="<%= base %>/manage/teams">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>팀</th><th>이름</th><th>색</th><th>팀장</th></tr></thead>
+      <tbody>
+        <% teams.forEach((t, i) => { const v = (field, fallback) => values && values[field + i] !== undefined ? String(values[field + i]) : String(fallback ?? ''); %>
+        <tr>
+          <td><span class="badge team-<%= t.color %>"><%= t.palette ? t.palette.mark : '' %> <%= i + 1 %></span></td>
+          <td><input name="name<%= i %>" value="<%= v('name', t.name) %>" maxlength="20" aria-label="<%= i + 1 %>번 팀 이름" <%= locked ? 'disabled' : '' %>></td>
+          <td>
+            <select name="color<%= i %>" aria-label="<%= i + 1 %>번 팀 색" <%= locked ? 'disabled' : '' %>>
+              <% palette.forEach((c) => { %><option value="<%= c.key %>" <%= v('color', t.color) === c.key ? 'selected' : '' %>><%= c.mark %> <%= c.name %></option><% }) %>
+            </select>
+          </td>
+          <td>
+            <select name="leader<%= i %>" aria-label="<%= i + 1 %>번 팀장" <%= locked ? 'disabled' : '' %>>
+              <option value="">없음</option>
+              <% people.forEach((p) => { %><option value="<%= p.id %>" <%= v('leader', t.leader_participant_id) === String(p.id) ? 'selected' : '' %>><%= p.name %><%= p.attendance === 'absent' ? ' (결석)' : '' %></option><% }) %>
+            </select>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% if (!locked) { %><button class="btn btn-primary">팀 설정 저장</button><% } %>
+</form>
+<p class="hint">팀장은 뽑기를 시작하면 자기 팀에 바로 들어갑니다. 팀장은 출석한 사람만 지정할 수 있습니다.</p>

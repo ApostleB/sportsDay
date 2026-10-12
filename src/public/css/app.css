@@ -2,6 +2,7 @@
   --paper: #FFF8EE; --surface: #FFFFFF; --ink: #24211E; --muted: #686058; --line: #DED5CB;
   --orange: #FF8A3D; --sky: #3FB6F0; --marker: #FFE66B; --rest: #E7F5FD; --focus: #175CD3; --danger: #B42318;
   --team-red: #C93636; --team-blue: #245BC7; --team-green: #237448; --team-yellow: #F4D34E;
+  --team-purple: #7A3FB0; --team-orange: #E0701F; --team-pink: #D6487E; --team-black: #24211E;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; overflow-wrap: break-word; }
@@ -107,4 +108,14 @@ td { height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); white-s
 td a { display: inline-flex; align-items: center; min-height: 44px; }
 td input, td select { width: auto; min-height: 44px; padding: 6px 10px; font-size: 14px; }
 hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
+/* 팀 색. 색만으로 구분하지 않도록 화면에서는 항상 기호와 함께 쓴다 */
+.team-red { --team: var(--team-red); --team-ink: #fff; }
+.team-blue { --team: var(--team-blue); --team-ink: #fff; }
+.team-green { --team: var(--team-green); --team-ink: #fff; }
+.team-yellow { --team: var(--team-yellow); --team-ink: var(--ink); }
+.team-purple { --team: var(--team-purple); --team-ink: #fff; }
+.team-orange { --team: var(--team-orange); --team-ink: var(--ink); }
+.team-pink { --team: var(--team-pink); --team-ink: #fff; }
+.team-black { --team: var(--team-black); --team-ink: #fff; }
+.badge[class*="team-"] { background: var(--team); color: var(--team-ink); }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
