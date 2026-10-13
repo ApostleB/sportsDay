@@ -1,0 +1,20 @@
+<h1 class="title">투표 관리</h1>
+<%- include('../partials/alert') %>
+<section class="card">
+  <h2>투표 목록</h2>
+  <% if (!list.length) { %><p class="muted">아직 투표가 없습니다.</p><% } %>
+  <ul class="list">
+    <% list.forEach((p) => { %>
+    <li class="row" style="justify-content: space-between">
+      <a href="<%= base %>/manage/polls/<%= p.id %>"><span class="badge"><%= pollStatusLabel(p.status) %></span><%= p.title %></a>
+      <span class="hint tnum"><%= p.voter_count %>/<%= p.participant_count %>명 투표</span>
+    </li>
+    <% }) %>
+  </ul>
+</section>
+<form method="post" action="<%= base %>/manage/polls" class="card stack">
+  <h2>새 투표</h2>
+  <%- include('../partials/poll-form', { values }) %>
+  <button class="btn btn-primary">만들기</button>
+  <p class="hint">만들면 바로 진행 중이 됩니다. 결과는 마감한 뒤 "결과 공개"를 눌러야 모두에게 보입니다.</p>
+</form>

@@ -8,6 +8,7 @@ const teams = require('../services/teams');
 const groups = require('../services/groups');
 const draw = require('../services/draw');
 const manito = require('../services/manito');
+const polls = require('../services/polls');
 const { scheduleUpload } = require('./upload');
 const { requireParticipant, requireCreator, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, inviteUrl } = require('./helpers');
@@ -378,5 +379,50 @@ router.get('/manito', (req, res) => renderManito(req, res));
 router.post('/manito/assign', (req, res) => manitoAction(req, res, () => manito.assign(req.event.id)));
 router.post('/manito/reassign', (req, res) => manitoAction(req, res, () => manito.reassign(req.event.id, req.body.confirm)));
 router.post('/manito/open', (req, res) => manitoAction(req, res, () => manito.open(req.event.id)));
+
+async function renderPolls(req, res, { error = null, status = 200, values = {} } = {}) {
+  const list = await polls.listWithCounts(req.event.id);
+  res.status(status).render('creator/polls', { title: '투표 관리', list, error, values });
+}
+
+router.get('/polls', (req, res) => renderPolls(req, res));
+
+router.post('/polls', async (req, res) => {
+  try {
+    const poll = await polls.createPoll(req.event.id, req.body);
+    res.redirect(manage(res, `/polls/${poll.id}`));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderPolls(req, res, { error: err.message, status: 400, values: req.body });
+  }
+});
+
+async function renderPoll(req, res, { error = null, status = 200, values = null } = {}) {
+  const data = await polls.getForCreator(req.event.id, req.params.id);
+  if (!data) return notFound(res);
+  res.status(status).render('creator/poll', {
+    title: data.poll.title, ...data, values: values || polls.formValues(data.poll, data.options), error,
+  });
+}
+
+// 투표 상세의 POST는 모두 같은 방식으로 처리한다. 결과가 null·false면 없는 투표다
+async function pollAction(req, res, action, { values = null, done = null } = {}) {
+  try {
+    const result = await action();
+    if (result === null || result === false) return notFound(res);
+    res.redirect(manage(res, done || `/polls/${req.params.id}`));
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderPoll(req, res, { error: err.message, status: 400, values });
+  }
+}
+
+router.get('/polls/:id', (req, res) => renderPoll(req, res));
+router.post('/polls/:id/edit', (req, res) => pollAction(req, res,
+  () => polls.updatePoll(req.event.id, req.params.id, req.body), { values: req.body }));
+router.post('/polls/:id/status', (req, res) => pollAction(req, res,
+  () => polls.setStatus(req.event.id, req.params.id, req.body.status)));
+router.post('/polls/:id/delete', (req, res) => pollAction(req, res,
+  () => polls.deletePoll(req.event.id, req.params.id, req.body.confirm), { done: '/polls' }));
 
 module.exports = router;

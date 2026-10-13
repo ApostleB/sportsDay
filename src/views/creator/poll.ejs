@@ -1,0 +1,55 @@
+<h1 class="title"><%= poll.title %></h1>
+<%- include('../partials/alert') %>
+<section class="stats">
+  <div><strong><%= pollStatusLabel(poll.status) %></strong>상태</div>
+  <div><strong class="tnum"><%= voterCount %>/<%= participantCount %></strong>투표</div>
+  <div><strong><%= poll.anonymous ? '익명' : '이름 공개' %></strong>방식</div>
+</section>
+<p class="hint">항목 <%= options.length %>개 · 최대 <%= poll.max_choices %>개 선택<%= poll.allow_other ? ' · 기타 입력 허용' : '' %></p>
+<section class="card stack">
+  <h2>상태 바꾸기</h2>
+  <% if (poll.status === 'open') { %>
+  <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="closed"><button class="btn btn-primary">마감</button></form>
+  <% } else if (poll.status === 'closed') { %>
+  <div class="row">
+    <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="revealed"><button class="btn btn-primary">결과 공개</button></form>
+    <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="open"><button class="btn">다시 열기</button></form>
+  </div>
+  <p class="hint">결과를 공개하면 모두에게 보이고 되돌릴 수 없습니다.</p>
+  <% } else { %>
+  <p>결과가 공개되었습니다.</p>
+  <% } %>
+</section>
+<% if (results) { %>
+<%- include('../partials/poll-results', { poll, results }) %>
+<% } else { %>
+<section class="card stack">
+  <h2>아직 안 한 사람 (<%= nonVoters.length %>명)</h2>
+  <p class="hint">득표는 결과를 공개할 때 모두와 함께 확인합니다.</p>
+  <% if (!nonVoters.length) { %><p class="muted">모두 투표했어요.</p><% } %>
+  <ul class="list">
+    <% nonVoters.forEach((p) => { %><li><%= p.name %><% if (p.attendance === 'absent') { %> <span class="muted">결석</span><% } %></li><% }) %>
+  </ul>
+</section>
+<% } %>
+<section class="card">
+  <h2>항목</h2>
+  <ol><% options.forEach((o) => { %><li><%= o.label %></li><% }) %></ol>
+</section>
+<% if (voterCount === 0 && poll.status !== 'revealed') { %>
+<form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/edit" class="card stack">
+  <h2>수정</h2>
+  <%- include('../partials/poll-form', { values }) %>
+  <button class="btn">저장</button>
+  <p class="hint">한 명이라도 투표하면 더 이상 수정할 수 없습니다.</p>
+</form>
+<% } %>
+<section class="card stack">
+  <h2>삭제</h2>
+  <p class="hint">투표와 응답이 모두 지워집니다. 계속하려면 "삭제"라고 입력하세요.</p>
+  <form class="stack" method="post" action="<%= base %>/manage/polls/<%= poll.id %>/delete">
+    <label>확인 문구<input name="confirm" autocomplete="off"></label>
+    <button class="btn btn-danger">삭제</button>
+  </form>
+</section>
+<p><a class="btn btn-small" href="<%= base %>/manage/polls">목록으로</a></p>

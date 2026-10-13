@@ -1,0 +1,8 @@
+<label>제목<input name="title" maxlength="50" required value="<%= values.title || '' %>"></label>
+<label>항목 (한 줄에 하나, 2~20개)<textarea name="options" rows="5" required><%= values.options || '' %></textarea></label>
+<label>최대 선택 수<input name="maxChoices" type="number" min="1" max="20" inputmode="numeric" value="<%= values.maxChoices || 1 %>" style="width: 7em"></label>
+<div class="row">
+  <label class="check"><input type="radio" name="anonymous" value="1"<%- values.anonymous === '0' ? '' : ' checked' %>> 익명</label>
+  <label class="check"><input type="radio" name="anonymous" value="0"<%- values.anonymous === '0' ? ' checked' : '' %>> 이름 공개</label>
+</div>
+<label class="check"><input type="checkbox" name="allowOther"<%- values.allowOther ? ' checked' : '' %>> 기타 직접 입력 허용</label>
