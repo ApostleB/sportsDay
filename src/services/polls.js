@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const db = require('../db');
 const { ValidationError } = require('./errors');
 const { tally } = require('./poll-tally');
@@ -102,26 +103,42 @@ async function setStatus(eventId, pollId, status) {
   });
 }
 
+// 투표 화면을 연 뒤 설정(익명·최대 선택·기타·항목)이 바뀌었는지 알아보는 토큰
+function formToken(poll, options) {
+  const source = [poll.anonymous, poll.max_choices, poll.allow_other, ...options.map((o) => o.id)].join('|');
+  return crypto.createHash('sha256').update(source).digest('hex').slice(0, 16);
+}
+
 function selectionFromInput(input) {
   const picked = asList(input.option);
+  const otherText = input.other === undefined || input.other === null ? '' : String(input.other);
   return {
     optionIds: [...new Set(picked.filter((v) => v !== OTHER))],
-    other: picked.includes(OTHER) ? String(input.other ?? '') : null,
+    other: picked.includes(OTHER) ? otherText : null,
+    otherText,
   };
 }
 
 async function vote(eventId, pollId, participantId, input) {
   if (!isId(eventId) || !isId(pollId) || !isId(participantId)) return null;
-  const { optionIds, other: rawOther } = selectionFromInput(input);
+  const { optionIds, other: picked, otherText } = selectionFromInput(input);
   return db.tx(async (client) => {
     const poll = await lockPoll(client, eventId, pollId);
     if (!poll) return null;
+    // 참가자 행을 잠가 투표가 끝날 때까지 삭제를 기다리게 한다
     const { rows: member } = await client.query(
-      'SELECT 1 FROM participants WHERE id = $1 AND event_id = $2', [participantId, eventId],
+      'SELECT 1 FROM participants WHERE id = $1 AND event_id = $2 FOR KEY SHARE', [participantId, eventId],
     );
     if (!member.length) return null;
     if (poll.status !== 'open') throw new ValidationError(CLOSED);
-    const { rows: options } = await client.query('SELECT id::text AS id FROM poll_options WHERE poll_id = $1', [pollId]);
+    const { rows: options } = await client.query(
+      'SELECT id::text AS id FROM poll_options WHERE poll_id = $1 ORDER BY sort_order, id', [pollId],
+    );
+    if (input.token !== undefined && String(input.token) !== formToken(poll, options)) {
+      throw new ValidationError('투표 설정이 바뀌었어요. 새로 고친 화면에서 다시 골라 주세요');
+    }
+    // 기타를 체크하지 않았어도 아무 항목도 고르지 않고 기타 글자만 썼다면 기타로 본다
+    const rawOther = picked === null && !optionIds.length && poll.allow_other && otherText.trim() ? otherText : picked;
     const valid = new Set(options.map((o) => o.id));
     if (optionIds.some((id) => !valid.has(id))) throw new ValidationError('투표 항목이 올바르지 않습니다');
     let other = null;
@@ -170,23 +187,23 @@ async function loadOptions(pollId) {
   return rows;
 }
 
-async function countVoters(pollId) {
-  const { rows } = await db.query('SELECT count(*)::int AS n FROM poll_voters WHERE poll_id = $1', [pollId]);
-  return rows[0].n;
-}
-
 // 공개된 투표만 결과를 계산한다. 이름은 비익명일 때만 쿼리에서 가져온다
 async function resultsOf(poll, options) {
   if (poll.status !== 'revealed') return null;
-  const { rows: answers } = await db.query(
-    poll.anonymous
-      ? 'SELECT option_id::text AS option_id, other_text FROM poll_answers WHERE poll_id = $1'
-      : `SELECT a.option_id::text AS option_id, a.other_text, p.name
-         FROM poll_answers a JOIN participants p ON p.id = a.participant_id
-         WHERE a.poll_id = $1`,
+  // 투표자 수와 응답을 한 문장(같은 스냅샷)에서 읽는다. 응답이 없어도 투표자 수 행은 하나 나온다
+  const { rows } = await db.query(
+    `SELECT v.voter_count, a.option_id, a.other_text, a.name
+     FROM (SELECT count(*)::int AS voter_count FROM poll_voters WHERE poll_id = $1) v
+     LEFT JOIN (
+       SELECT a.option_id::text AS option_id, a.other_text, ${poll.anonymous ? 'NULL::text' : 'p.name'} AS name
+       FROM poll_answers a JOIN participants p ON p.id = a.participant_id
+       WHERE a.poll_id = $1
+     ) a ON true`,
     [poll.id],
   );
-  return tally({ anonymous: poll.anonymous, options, answers, voterCount: await countVoters(poll.id) });
+  const answers = rows.filter((r) => r.option_id != null || r.other_text != null)
+    .map(({ option_id, other_text, name }) => (poll.anonymous ? { option_id, other_text } : { option_id, other_text, name }));
+  return tally({ anonymous: poll.anonymous, options, answers, voterCount: rows[0].voter_count });
 }
 
 async function mineOf(pollId, participantId) {
@@ -219,7 +236,10 @@ async function getForParticipant(eventId, pollId, participantId) {
   const poll = await getPoll(eventId, pollId);
   if (!poll) return null;
   const options = await loadOptions(poll.id);
-  return { poll, options, mine: await mineOf(poll.id, participantId), results: await resultsOf(poll, options) };
+  return {
+    poll, options, token: formToken(poll, options),
+    mine: await mineOf(poll.id, participantId), results: await resultsOf(poll, options),
+  };
 }
 
 async function getForCreator(eventId, pollId) {

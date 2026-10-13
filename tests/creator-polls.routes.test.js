@@ -119,3 +119,16 @@ test('다른 운동회 투표와 잘못된 id는 404', async () => {
   await creator.post(`${manage}/polls/${foreign.id}/delete`).type('form').send({ confirm: '삭제' }).expect(404);
   assert.equal((await pollRow(foreign.id)).status, 'open');
 });
+
+test('마감된 투표 상세: 득표는 없고, 결과 공개는 확인을 거치며 다시 열기가 먼저', async () => {
+  const { event, a, creator, manage } = await setup();
+  const poll = await polls.createPoll(event.id, FORM);
+  await polls.vote(event.id, poll.id, a.id, { option: await firstOption(poll.id) });
+  await polls.setStatus(event.id, poll.id, 'closed');
+  const res = await creator.get(`${manage}/polls/${poll.id}`).expect(200);
+  assert.doesNotMatch(res.text, /poll-results/);
+  assert.doesNotMatch(res.text, /\d+표 ·/);
+  assert.match(res.text, /data-msg="결과를 공개할까요\? 모두에게 보이고 되돌릴 수 없어요\." onsubmit="return confirm\(this\.dataset\.msg\)"/);
+  assert.ok(res.text.indexOf('다시 열기') < res.text.indexOf('>결과 공개<'), '다시 열기가 먼저');
+  assert.match(res.text, /<strong class="stat-text">마감<\/strong>상태/);
+});

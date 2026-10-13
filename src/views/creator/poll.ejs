@@ -1,7 +1,7 @@
 <h1 class="title"><%= poll.title %></h1>
 <%- include('../partials/alert') %>
 <section class="stats">
-  <div><strong><%= pollStatusLabel(poll.status) %></strong>상태</div>
+  <div><strong class="stat-text"><%= pollStatusLabel(poll.status) %></strong>상태</div>
   <div><strong class="tnum"><%= voterCount %>/<%= participantCount %></strong>투표</div>
   <div><strong><%= poll.anonymous ? '익명' : '이름 공개' %></strong>방식</div>
 </section>
@@ -12,8 +12,8 @@
   <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="closed"><button class="btn btn-primary">마감</button></form>
   <% } else if (poll.status === 'closed') { %>
   <div class="row">
-    <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="revealed"><button class="btn btn-primary">결과 공개</button></form>
     <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status"><input type="hidden" name="status" value="open"><button class="btn">다시 열기</button></form>
+    <form method="post" action="<%= base %>/manage/polls/<%= poll.id %>/status" data-msg="결과를 공개할까요? 모두에게 보이고 되돌릴 수 없어요." onsubmit="return confirm(this.dataset.msg)"><input type="hidden" name="status" value="revealed"><button class="btn btn-primary">결과 공개</button></form>
   </div>
   <p class="hint">결과를 공개하면 모두에게 보이고 되돌릴 수 없습니다.</p>
   <% } else { %>

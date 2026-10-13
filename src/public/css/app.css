@@ -61,7 +61,7 @@ body.wide .card { padding: 20px; }
 label { display: grid; gap: 6px; font: 500 14px/1.4 'Noto Sans KR', sans-serif; }
 label.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 input, select, textarea { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--muted); border-radius: 10px; background: var(--surface); color: var(--ink); font: 400 16px 'Noto Sans KR', sans-serif; }
-input[type=checkbox] { width: 22px; height: 22px; min-height: 22px; accent-color: var(--orange); }
+input[type=checkbox], input[type=radio] { width: 22px; height: 22px; min-height: 22px; accent-color: var(--orange); }
 input[type=file] { padding: 10px; }
 
 /* 버튼 */
@@ -118,6 +118,7 @@ body.area-manage { background: #EEF0F2; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
 .stats div { padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; color: var(--muted); font-size: 13px; }
 .stats strong { display: block; color: var(--ink); font: 400 30px/1.1 'Jua', sans-serif; }
+.stats strong.stat-text { font-size: 22px; }
 .copy { margin: 0; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: #F7F1EA; font: 400 13px/1.5 ui-monospace, monospace; word-break: break-all; }
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
@@ -167,7 +168,6 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .team-card { border-top: 6px solid var(--team); }
 .team-card h2 .muted { margin-left: auto; }
 /* 투표 */
-input[type=radio] { width: 22px; height: 22px; min-height: 22px; accent-color: var(--orange); }
 .poll-option { font-size: 16px; }
 .poll-results { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
 .poll-result-head { display: flex; justify-content: space-between; gap: 8px; }

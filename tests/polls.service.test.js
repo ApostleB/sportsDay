@@ -257,9 +257,9 @@ test('목록과 홈 요약', async () => {
 });
 
 test('selectionFromInput: 400 재렌더링용 입력 유지', () => {
-  assert.deepEqual(polls.selectionFromInput({ option: ['3', 'other'], other: '냉면' }), { optionIds: ['3'], other: '냉면' });
-  assert.deepEqual(polls.selectionFromInput({ option: '2', other: '무시' }), { optionIds: ['2'], other: null });
-  assert.deepEqual(polls.selectionFromInput({}), { optionIds: [], other: null });
+  assert.deepEqual(polls.selectionFromInput({ option: ['3', 'other'], other: '냉면' }), { optionIds: ['3'], other: '냉면', otherText: '냉면' });
+  assert.deepEqual(polls.selectionFromInput({ option: '2', other: '무시' }), { optionIds: ['2'], other: null, otherText: '무시' });
+  assert.deepEqual(polls.selectionFromInput({}), { optionIds: [], other: null, otherText: '' });
 });
 
 test('마감과 동시에 들어온 투표는 반영되거나 거부되고, 투표자 수와 성공 수가 같다', async () => {
@@ -343,4 +343,31 @@ test('내 선택은 항목 순서대로', async () => {
   const ids = await optionIds(poll.id);
   await polls.vote(event.id, poll.id, a.id, { option: [ids[2], ids[0], ids[1]] });
   assert.deepEqual((await polls.getForParticipant(event.id, poll.id, a.id)).mine.optionIds, ids);
+});
+
+test('설정이 바뀌면 이전 화면의 토큰으로는 투표할 수 없다(기타만 고른 경우 포함)', async () => {
+  const { event, a } = await setup();
+  const poll = await makePoll(event.id, { allowOther: 'on' });
+  const before = await polls.getForParticipant(event.id, poll.id, a.id);
+  assert.match(before.token, /^[0-9a-f]{16}$/);
+  await polls.updatePoll(event.id, poll.id, { ...BASE, allowOther: 'on', anonymous: '0' });
+  await assert.rejects(
+    polls.vote(event.id, poll.id, a.id, { option: 'other', other: '냉면', token: before.token }),
+    /투표 설정이 바뀌었어요/,
+  );
+  assert.equal(await voterCount(poll.id), 0);
+  const after = await polls.getForParticipant(event.id, poll.id, a.id);
+  assert.notEqual(after.token, before.token);
+  assert.equal(await polls.vote(event.id, poll.id, a.id, { option: 'other', other: '냉면', token: after.token }), true);
+  assert.deepEqual((await answersOf(poll.id)).map((r) => [r.option_id, r.other_text]), [[null, '냉면']]);
+});
+
+test('기타를 고르지 않았지만 아무 항목도 없고 기타 글자가 있으면 기타로 받는다', async () => {
+  const { event, a, b } = await setup();
+  const poll = await makePoll(event.id, { allowOther: 'on' });
+  assert.equal(await polls.vote(event.id, poll.id, a.id, { other: ' 냉면 ' }), true);
+  assert.deepEqual((await answersOf(poll.id)).map((r) => [r.option_id, r.other_text]), [[null, '냉면']]);
+  await assert.rejects(polls.vote(event.id, poll.id, b.id, { other: '   ' }), /하나 이상 골라 주세요/);
+  const closed = await makePoll(event.id);
+  await assert.rejects(polls.vote(event.id, closed.id, a.id, { other: '냉면' }), /하나 이상 골라 주세요/);
 });

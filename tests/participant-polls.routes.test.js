@@ -148,3 +148,43 @@ test('다른 운동회 투표는 404, 입장 안 하면 입장 화면으로', as
     assert.equal(res.headers.location, base);
   }
 });
+
+test('투표 폼에 설정 토큰이 있다', async () => {
+  const { agent, poll, base } = await setup({});
+  const res = await agent.get(`${base}/polls/${poll.id}`).expect(200);
+  assert.match(res.text, /<input type="hidden" name="token" value="[0-9a-f]{16}">/);
+});
+
+test('기타 글자만 쓰고 기타를 안 골라도 기타로 투표되고, 내 선택과 공개 결과에 보인다', async () => {
+  const { event, agent, poll, base } = await setup({ allowOther: 'on', anonymous: '0' });
+  let res = await agent.get(`${base}/polls/${poll.id}`).expect(200);
+  assert.match(res.text, /기타를 고르고 내용을 적어 주세요/);
+  assert.match(res.text, /<script src="\/js\/poll.js" defer><\/script>/);
+  await agent.post(`${base}/polls/${poll.id}/vote`).type('form').send({ other: '냉면' }).expect(303);
+  const { rows } = await H.db.query('SELECT option_id, other_text FROM poll_answers WHERE poll_id = $1', [poll.id]);
+  assert.deepEqual(rows.map((r) => [r.option_id, r.other_text]), [[null, '냉면']]);
+  await polls.setStatus(event.id, poll.id, 'closed');
+  res = await agent.get(`${base}/polls/${poll.id}`).expect(200);
+  assert.match(res.text, /<li>기타: 냉면<\/li>/);
+  assert.doesNotMatch(res.text, /poll\.js/);
+  await polls.setStatus(event.id, poll.id, 'revealed');
+  res = await agent.get(`${base}/polls/${poll.id}`).expect(200);
+  assert.match(res.text, /<li>기타: 냉면<\/li>/);
+  assert.match(res.text, /<h3>기타 \(1\)<\/h3>/);
+  assert.match(res.text, /냉면 <span class="hint">— 가람<\/span>/);
+});
+
+test('400 재렌더링: 기타를 안 골라도 쓴 기타 글자는 남는다', async () => {
+  const { agent, poll, ids, base } = await setup({ allowOther: 'on' });
+  const res = await agent.post(`${base}/polls/${poll.id}/vote`).type('form')
+    .send({ option: [ids[0], ids[1]], other: '냉면' }).expect(400);
+  assert.match(res.text, /최대 1개까지 고를 수 있습니다/);
+  assert.match(res.text, /name="other" maxlength="50" value="냉면"/);
+  assert.doesNotMatch(res.text, /value="other" checked/);
+});
+
+test('기타를 허용하지 않는 투표에는 poll.js가 없다', async () => {
+  const { agent, poll, base } = await setup({});
+  const res = await agent.get(`${base}/polls/${poll.id}`).expect(200);
+  assert.doesNotMatch(res.text, /poll\.js/);
+});
