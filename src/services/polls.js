@@ -43,6 +43,8 @@ async function createPoll(eventId, input) {
   if (!isId(eventId)) throw new ValidationError('운동회를 찾을 수 없습니다');
   const p = cleanPoll(input);
   return db.tx(async (client) => {
+    const { rows: found } = await client.query('SELECT 1 FROM events WHERE id = $1', [eventId]);
+    if (!found.length) throw new ValidationError('운동회를 찾을 수 없습니다');
     const { rows } = await client.query(
       `INSERT INTO polls (event_id, title, anonymous, max_choices, allow_other)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -54,11 +56,11 @@ async function createPoll(eventId, input) {
 }
 
 async function updatePoll(eventId, pollId, input) {
-  const p = cleanPoll(input);
   if (!isId(eventId) || !isId(pollId)) return null;
   return db.tx(async (client) => {
     const poll = await lockPoll(client, eventId, pollId);
     if (!poll) return null;
+    const p = cleanPoll(input);
     if (poll.status === 'revealed') throw new ValidationError('결과를 공개한 투표는 수정할 수 없습니다');
     const { rows: voters } = await client.query('SELECT 1 FROM poll_voters WHERE poll_id = $1 LIMIT 1', [pollId]);
     if (voters.length) throw new ValidationError('이미 투표한 사람이 있어 수정할 수 없습니다');
@@ -85,11 +87,11 @@ async function deletePoll(eventId, pollId, confirm) {
 
 async function setStatus(eventId, pollId, status) {
   const next = String(status ?? '');
-  if (!STATUSES.includes(next)) throw new ValidationError('상태 값이 올바르지 않습니다');
   if (!isId(eventId) || !isId(pollId)) return null;
   return db.tx(async (client) => {
     const poll = await lockPoll(client, eventId, pollId);
     if (!poll) return null;
+    if (!STATUSES.includes(next)) throw new ValidationError('상태 값이 올바르지 않습니다');
     if (!TRANSITIONS[poll.status].includes(next)) {
       if (poll.status === 'revealed') throw new ValidationError('결과를 공개한 투표는 바꿀 수 없습니다');
       if (next === 'revealed') throw new ValidationError('결과 공개는 마감한 뒤에 할 수 있습니다');
@@ -189,9 +191,12 @@ async function resultsOf(poll, options) {
 
 async function mineOf(pollId, participantId) {
   const { rows } = await db.query(
-    `SELECT v.id AS voter_id, a.option_id::text AS option_id, a.other_text
-     FROM poll_voters v LEFT JOIN poll_answers a ON a.poll_id = v.poll_id AND a.participant_id = v.participant_id
-     WHERE v.poll_id = $1 AND v.participant_id = $2`,
+    `SELECT a.option_id::text AS option_id, a.other_text
+     FROM poll_voters v
+     LEFT JOIN poll_answers a ON a.poll_id = v.poll_id AND a.participant_id = v.participant_id
+     LEFT JOIN poll_options o ON o.id = a.option_id
+     WHERE v.poll_id = $1 AND v.participant_id = $2
+     ORDER BY o.sort_order NULLS LAST, o.id`,
     [pollId, participantId],
   );
   if (!rows.length) return { voted: false, optionIds: [], other: null };
@@ -203,8 +208,14 @@ async function mineOf(pollId, participantId) {
   };
 }
 
+async function isMember(eventId, participantId) {
+  if (!isId(eventId) || !isId(participantId)) return false;
+  const { rows } = await db.query('SELECT 1 FROM participants WHERE id = $1 AND event_id = $2', [participantId, eventId]);
+  return rows.length > 0;
+}
+
 async function getForParticipant(eventId, pollId, participantId) {
-  if (!isId(participantId)) return null;
+  if (!(await isMember(eventId, participantId))) return null;
   const poll = await getPoll(eventId, pollId);
   if (!poll) return null;
   const options = await loadOptions(poll.id);
@@ -244,7 +255,7 @@ function formValues(poll, options) {
 }
 
 async function listForParticipant(eventId, participantId) {
-  if (!isId(eventId) || !isId(participantId)) return [];
+  if (!(await isMember(eventId, participantId))) return [];
   const { rows } = await db.query(
     `SELECT p.id, p.title, p.status,
        EXISTS (SELECT 1 FROM poll_voters v WHERE v.poll_id = p.id AND v.participant_id = $2) AS voted

@@ -281,3 +281,66 @@ test('마감과 동시에 들어온 투표는 반영되거나 거부되고, 투�
   assert.equal(await voterCount(poll.id), votes.filter((r) => r.status === 'fulfilled').length);
   assert.equal((await answersOf(poll.id)).length, await voterCount(poll.id));
 });
+
+test('참가자 조회·목록·홈 요약: 다른 운동회나 없는 참가자는 빈 결과', async () => {
+  const { event, a } = await setup();
+  const poll = await makePoll(event.id, { anonymous: '0' });
+  const ids = await optionIds(poll.id);
+  await polls.vote(event.id, poll.id, a.id, { option: ids[0] });
+  await polls.setStatus(event.id, poll.id, 'closed');
+  await polls.setStatus(event.id, poll.id, 'revealed');
+  const { participant: stranger } = await H.makeEvent();
+  for (const who of [stranger.id, '999999', 'abc']) {
+    assert.equal(await polls.getForParticipant(event.id, poll.id, who), null);
+    assert.deepEqual(await polls.listForParticipant(event.id, who), []);
+    assert.deepEqual(await polls.homeSummary(event.id, who), { total: 0, open: 0, pending: 0 });
+  }
+});
+
+test('만들기: 없는 운동회는 ValidationError', async () => {
+  await assert.rejects(makeEventless(), /운동회를 찾을 수 없습니다/);
+});
+const makeEventless = () => polls.createPoll('999999999', BASE);
+
+test('수정·상태 전환: 잘못된 id나 다른 운동회는 입력 검증보다 먼저 null', async () => {
+  const { event } = await setup();
+  const poll = await makePoll(event.id);
+  const { event: other } = await H.makeEvent();
+  assert.equal(await polls.updatePoll(event.id, 'abc', {}), null);
+  assert.equal(await polls.updatePoll(other.id, poll.id, {}), null);
+  assert.equal(await polls.updatePoll(event.id, '999999', {}), null);
+  assert.equal(await polls.setStatus(event.id, 'abc', 'x'), null);
+  assert.equal(await polls.setStatus(other.id, poll.id, 'x'), null);
+  await assert.rejects(polls.updatePoll(event.id, poll.id, {}), /제목은 1~50자/);
+});
+
+test('마감된 투표도 투표자가 없으면 수정할 수 있다', async () => {
+  const { event } = await setup();
+  const poll = await makePoll(event.id);
+  await polls.setStatus(event.id, poll.id, 'closed');
+  const updated = await polls.updatePoll(event.id, poll.id, { ...BASE, title: '바뀜' });
+  assert.equal(updated.title, '바뀜');
+  assert.equal(updated.status, 'closed');
+});
+
+test('공개된 익명 투표의 생성자 조회에는 이름이 없다', async () => {
+  const { event, a, b } = await setup();
+  const poll = await makePoll(event.id);
+  const ids = await optionIds(poll.id);
+  await polls.vote(event.id, poll.id, a.id, { option: ids[0] });
+  await polls.vote(event.id, poll.id, b.id, { option: ids[1] });
+  await polls.setStatus(event.id, poll.id, 'closed');
+  await polls.setStatus(event.id, poll.id, 'revealed');
+  const view = await polls.getForCreator(event.id, poll.id);
+  assert.equal(view.nonVoters, null);
+  const json = JSON.stringify(view);
+  for (const name of ['가람', '나래', '다솜', '생성자']) assert.ok(!json.includes(name));
+});
+
+test('내 선택은 항목 순서대로', async () => {
+  const { event, a } = await setup();
+  const poll = await makePoll(event.id, { maxChoices: '3' });
+  const ids = await optionIds(poll.id);
+  await polls.vote(event.id, poll.id, a.id, { option: [ids[2], ids[0], ids[1]] });
+  assert.deepEqual((await polls.getForParticipant(event.id, poll.id, a.id)).mine.optionIds, ids);
+});
