@@ -36,6 +36,19 @@
     <button class="btn btn-small"><%= event.join_closed ? '마감 풀기' : '참가 마감' %></button>
   </form>
 </section>
+<section class="card stack" id="polls">
+  <h2>투표</h2>
+  <% if (!pollList.length) { %>
+  <p class="muted">투표가 없습니다.</p>
+  <% } else { %>
+  <ul class="list">
+    <% pollList.forEach((p) => { %>
+    <li class="row" style="justify-content: space-between"><span><span class="badge"><%= pollStatusLabel(p.status) %></span><%= p.title %></span><span class="hint tnum"><%= p.voter_count %>/<%= p.participant_count %>명</span></li>
+    <% }) %>
+  </ul>
+  <% } %>
+  <p class="hint">응답 내용과 투표한 사람은 관리자 화면에 보이지 않습니다.</p>
+</section>
 <section class="card table-wrap">
   <h2>참가자 (<%= list.length %>명)</h2>
   <table>

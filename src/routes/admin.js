@@ -3,6 +3,7 @@ const events = require('../services/events');
 const participants = require('../services/participants');
 const schedules = require('../services/schedules');
 const manito = require('../services/manito');
+const polls = require('../services/polls');
 const { ValidationError } = require('../services/errors');
 const { checkAdminPassword, requireAdmin, notFound } = require('../middleware/auth');
 const { regenerate, inviteUrl } = require('./helpers');
@@ -67,9 +68,10 @@ async function loadAdminEvent(req, res, next) {
 }
 
 async function renderDetail(req, res, { message = null, error = null, status = 200 } = {}) {
-  const [list, manitoView] = await Promise.all([
+  const [list, manitoView, pollList] = await Promise.all([
     participants.listParticipants(req.event.id),
     manito.adminView(req.event.id),
+    polls.listWithCounts(req.event.id),
   ]);
   res.status(status).render('admin/event', {
     title: `관리: ${req.event.title}`,
@@ -77,6 +79,7 @@ async function renderDetail(req, res, { message = null, error = null, status = 2
     event: req.event,
     list,
     manito: manitoView,
+    pollList,
     inviteUrl: inviteUrl(req, req.event),
     message,
     error,
