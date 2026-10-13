@@ -108,6 +108,18 @@ router.post('/events/:id/creator-pin', loadAdminEvent, async (req, res) => {
   }
 });
 
+router.post('/events/:id/manito-lock', loadAdminEvent, async (req, res) => {
+  const locked = req.body.locked === '1';
+  await manito.setLocked(req.event.id, locked);
+  res.redirect(`/admin/events/${req.event.id}?done=${locked ? 'manitoLock' : 'manitoUnlock'}`);
+});
+
+router.post('/events/:id/join-closed', loadAdminEvent, async (req, res) => {
+  const closed = req.body.closed === '1';
+  await events.setJoinClosed(req.event.id, closed);
+  res.redirect(`/admin/events/${req.event.id}?done=${closed ? 'joinClosed' : 'joinOpen'}`);
+});
+
 router.post('/events/:id/delete', loadAdminEvent, async (req, res) => {
   if (String(req.body.confirm ?? '').trim().toLowerCase() !== req.event.slug) {
     return renderDetail(req, res, { error: '확인 문구가 운동회 코드와 다릅니다', status: 400 });
@@ -122,15 +134,3 @@ router.post('/events/:id/delete', loadAdminEvent, async (req, res) => {
 });
 
 module.exports = router;
-
-router.post('/events/:id/manito-lock', loadAdminEvent, async (req, res) => {
-  const locked = req.body.locked === '1';
-  await manito.setLocked(req.event.id, locked);
-  res.redirect(`/admin/events/${req.event.id}?done=${locked ? 'manitoLock' : 'manitoUnlock'}`);
-});
-
-router.post('/events/:id/join-closed', loadAdminEvent, async (req, res) => {
-  const closed = req.body.closed === '1';
-  await events.setJoinClosed(req.event.id, closed);
-  res.redirect(`/admin/events/${req.event.id}?done=${closed ? 'joinClosed' : 'joinOpen'}`);
-});

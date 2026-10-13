@@ -144,6 +144,21 @@ test('맵: 10명 이하는 원형, 11명 이상은 목록', async () => {
   assert.doesNotMatch(res.text, /manito-map circle/);
 });
 
+test('맵: 이름이 11자 이상이면 4명이어도 목록, 짧으면 원형', async () => {
+  for (const [third, circle] of [['열한글자이름입니다요요', false], ['열글자이름입니다', true]]) {
+    const { event } = await H.makeEvent();
+    const agent = await H.joinAgent(event, { name: '가람', pin: '1234' });
+    await H.addParticipant(event.id, '나래');
+    await H.addParticipant(event.id, '다솜');
+    await H.addParticipant(event.id, third);
+    await manito.assign(event.id, mulberry32(9));
+    await manito.open(event.id);
+    const res = await agent.get(`/e/${event.slug}/manito/map`).expect(200);
+    assert.equal(/manito-map circle/.test(res.text), circle, third);
+    assert.equal(/시계 방향으로 이어져요/.test(res.text), circle, third);
+  }
+});
+
 test('맵: 순환이 비면 안내만', async () => {
   const { event, agents, base } = await setup();
   await manito.assign(event.id, mulberry32(8));

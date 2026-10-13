@@ -4,7 +4,7 @@
   <% if (!manito || manito.stage === 'none') { %>
   <p class="muted">아직 마니또가 배정되지 않았어요.</p>
   <% } else if (!manito.inCycle) { %>
-  <p class="muted">지금은 마니또가 없어요. 출석으로 바뀌면 자동으로 들어가요.</p>
+  <p class="muted">지금은 마니또가 없어요. 결석으로 되어 있거나 함께할 사람이 부족하면 생기지 않아요. 상황이 바뀌면 자동으로 들어가요.</p>
   <% } else if (!manito.acknowledged) { %>
   <p class="envelope-icon" aria-hidden="true">✉️</p>
   <p><strong>봉투가 도착했어요</strong></p>
