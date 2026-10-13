@@ -27,4 +27,7 @@ const statusLabel = (status) => STATUS_LABELS[status] || status;
 const MANITO_STAGE_LABELS = { none: '준비', assigned: '배정됨', opened: '공개됨' };
 const manitoStageLabel = (stage) => MANITO_STAGE_LABELS[stage] || stage;
 
-module.exports = { fmtDate, fmtDateTime, statusLabel, manitoStageLabel };
+const POLL_STATUS_LABELS = { open: '진행 중', closed: '마감', revealed: '결과 공개' };
+const pollStatusLabel = (status) => POLL_STATUS_LABELS[status] || status;
+
+module.exports = { fmtDate, fmtDateTime, statusLabel, manitoStageLabel, pollStatusLabel };

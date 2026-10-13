@@ -166,6 +166,16 @@ hr { margin: 0; border: 0; border-top: 1px solid var(--line); }
 .bib[class*="team-"] .band { display: block; }
 .team-card { border-top: 6px solid var(--team); }
 .team-card h2 .muted { margin-left: auto; }
+/* 투표 */
+input[type=radio] { width: 22px; height: 22px; min-height: 22px; accent-color: var(--orange); }
+.poll-option { font-size: 16px; }
+.poll-results { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.poll-result-head { display: flex; justify-content: space-between; gap: 8px; }
+.poll-bar { height: 12px; margin-top: 6px; overflow: hidden; background: #F2E8DD; border-radius: 999px; }
+.poll-bar span { display: block; height: 100%; background: var(--sky); border-radius: inherit; }
+.poll-results .top .poll-result-head { font-weight: 700; }
+.poll-results .top .poll-bar span { background: var(--orange); }
+
 /* 마니또 */
 .envelope-icon { margin: 0; font-size: 64px; line-height: 1; }
 .envelope { text-align: center; background: #FFF1E6; border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 4px 0 var(--ink); }

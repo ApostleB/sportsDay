@@ -5,6 +5,7 @@ const schedules = require('../services/schedules');
 const draw = require('../services/draw');
 const teams = require('../services/teams');
 const manito = require('../services/manito');
+const polls = require('../services/polls');
 const { ValidationError } = require('../services/errors');
 const { loadEvent, requireParticipant, notFound } = require('../middleware/auth');
 const { regenerate, setEventEntry, clearEventEntry } = require('./helpers');
@@ -84,12 +85,13 @@ router.post('/join', async (req, res) => {
 });
 
 router.get('/home', requireParticipant, async (req, res) => {
-  const [announcementList, scheduleList, mine, hasEnvelope, myManito] = await Promise.all([
+  const [announcementList, scheduleList, mine, hasEnvelope, myManito, pollSummary] = await Promise.all([
     announcements.list(req.event.id),
     schedules.list(req.event.id),
     draw.myResult(req.event.id, req.participant.id),
     draw.hasEnvelope(req.event.id, req.participant.id),
     manito.mine(req.event.id, req.participant.id),
+    polls.homeSummary(req.event.id, req.participant.id),
   ]);
   res.render('participant/home', {
     title: req.event.title,
@@ -98,6 +100,7 @@ router.get('/home', requireParticipant, async (req, res) => {
     mine,
     hasEnvelope,
     manito: myManito,
+    pollSummary,
     mapVisible: req.event.manito_stage === 'opened' && !req.event.manito_locked,
   });
 });
@@ -165,6 +168,29 @@ router.get('/manito/map', requireParticipant, async (req, res) => {
 router.get('/teams', requireParticipant, async (req, res) => {
   const board = await draw.board(req.event.id);
   res.render('participant/teams', { title: '팀 현황', board });
+});
+
+router.get('/polls', requireParticipant, async (req, res) => {
+  res.render('participant/polls', { title: '투표', list: await polls.listForParticipant(req.event.id, req.participant.id) });
+});
+
+async function renderPoll(req, res, { error = null, status = 200, selected = null } = {}) {
+  const data = await polls.getForParticipant(req.event.id, req.params.id, req.participant.id);
+  if (!data) return notFound(res);
+  res.status(status).render('participant/poll', { title: data.poll.title, ...data, selected: selected || data.mine, error });
+}
+
+router.get('/polls/:id', requireParticipant, (req, res) => renderPoll(req, res));
+
+router.post('/polls/:id/vote', requireParticipant, async (req, res) => {
+  try {
+    const ok = await polls.vote(req.event.id, req.params.id, req.participant.id, req.body);
+    if (!ok) return notFound(res);
+    res.redirect(303, `${res.locals.base}/polls/${req.params.id}`);
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err;
+    await renderPoll(req, res, { error: err.message, status: 400, selected: polls.selectionFromInput(req.body) });
+  }
 });
 
 router.post('/logout', async (req, res) => {

@@ -1,0 +1,14 @@
+<%- include('../partials/topbar') %>
+<h1 class="title">🗳️ 투표</h1>
+<section class="card">
+  <% if (!list.length) { %><p class="muted">아직 투표가 없어요.</p><% } %>
+  <ul class="list">
+    <% list.forEach((p) => { %>
+    <li class="row" style="justify-content: space-between">
+      <a href="<%= base %>/polls/<%= p.id %>"><span class="badge"><%= pollStatusLabel(p.status) %></span><%= p.title %></a>
+      <% if (p.status === 'open') { %><span class="hint"><%= p.voted ? '투표함' : '안 함' %></span><% } %>
+    </li>
+    <% }) %>
+  </ul>
+</section>
+<p><a class="btn btn-small" href="<%= base %>/home">홈으로</a></p>

@@ -33,6 +33,15 @@
   <% } %>
   <% if (mapVisible) { %><a class="btn btn-block" href="<%= base %>/manito/map">마니또 맵 보기</a><% } %>
 </section>
+<section class="card stack">
+  <h2>🗳️ 투표</h2>
+  <% if (!pollSummary.total) { %>
+  <p class="muted">아직 투표가 없어요.</p>
+  <% } else { %>
+  <p>진행 중 <%= pollSummary.open %>개<% if (pollSummary.pending) { %> · <strong>투표할 게 <%= pollSummary.pending %>개 있어요</strong><% } %></p>
+  <a class="btn btn-block<%= pollSummary.pending ? ' btn-primary' : '' %>" href="<%= base %>/polls">투표 보기</a>
+  <% } %>
+</section>
 <section class="card">
   <h2>공지</h2>
   <% if (announcements.length === 0) { %><p class="muted">아직 공지가 없습니다.</p><% } %>

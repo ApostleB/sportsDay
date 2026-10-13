@@ -1,0 +1,33 @@
+<%- include('../partials/topbar') %>
+<h1 class="title"><%= poll.title %></h1>
+<%- include('../partials/alert') %>
+<p class="row"><span class="badge"><%= pollStatusLabel(poll.status) %></span><span class="hint"><%= poll.anonymous ? '익명 투표예요' : '이름이 공개되는 투표예요' %><% if (poll.max_choices > 1) { %> · 최대 <%= poll.max_choices %>개<% } %></span></p>
+<% if (poll.status === 'open') { %>
+<% const type = poll.max_choices > 1 ? 'checkbox' : 'radio'; %>
+<form method="post" action="<%= base %>/polls/<%= poll.id %>/vote" class="card stack">
+  <% options.forEach((o) => { %>
+  <label class="check poll-option"><input type="<%= type %>" name="option" value="<%= o.id %>"<%- selected.optionIds.includes(o.id) ? ' checked' : '' %>> <%= o.label %></label>
+  <% }) %>
+  <% if (poll.allow_other) { %>
+  <label class="check poll-option"><input type="<%= type %>" name="option" value="other"<%- selected.other !== null ? ' checked' : '' %>> 기타</label>
+  <label>기타 내용<input name="other" maxlength="50" value="<%= selected.other || '' %>"></label>
+  <% } %>
+  <button class="btn btn-primary btn-block"><%= mine.voted ? '다시 투표' : '투표하기' %></button>
+  <% if (mine.voted) { %><p class="hint">마감 전까지 다시 고를 수 있어요.</p><% } %>
+</form>
+<% } else { %>
+<% if (poll.status === 'closed') { %><p class="card muted">마감됐어요. 결과 공개를 기다려 주세요.</p><% } %>
+<% if (results) { %><%- include('../partials/poll-results', { poll, results }) %><% } %>
+<section class="card">
+  <h2>내 선택</h2>
+  <% if (!mine.voted) { %>
+  <p class="muted">투표하지 않았어요.</p>
+  <% } else { %>
+  <ul class="list">
+    <% options.filter((o) => mine.optionIds.includes(o.id)).forEach((o) => { %><li><%= o.label %></li><% }) %>
+    <% if (mine.other !== null) { %><li>기타: <%= mine.other %></li><% } %>
+  </ul>
+  <% } %>
+</section>
+<% } %>
+<p><a class="btn btn-small" href="<%= base %>/polls">목록으로</a></p>

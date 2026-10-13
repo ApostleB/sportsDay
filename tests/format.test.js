@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fmtDate, fmtDateTime, statusLabel, manitoStageLabel } = require('../src/services/format');
+const { fmtDate, fmtDateTime, statusLabel, manitoStageLabel, pollStatusLabel } = require('../src/services/format');
 
 test('날짜는 요일과 함께 한국어로 표시한다', () => {
   assert.equal(fmtDate('2026-10-10'), '2026년 10월 10일 (토)');
@@ -23,4 +23,11 @@ test('manitoStageLabel', () => {
   assert.equal(manitoStageLabel('assigned'), '배정됨');
   assert.equal(manitoStageLabel('opened'), '공개됨');
   assert.equal(manitoStageLabel('x'), 'x');
+});
+
+test('pollStatusLabel', () => {
+  assert.equal(pollStatusLabel('open'), '진행 중');
+  assert.equal(pollStatusLabel('closed'), '마감');
+  assert.equal(pollStatusLabel('revealed'), '결과 공개');
+  assert.equal(pollStatusLabel('x'), 'x');
 });

@@ -1,0 +1,22 @@
+<section class="card stack">
+  <h2>결과</h2>
+  <p class="hint"><%= results.voterCount %>명 투표<%= poll.anonymous ? ' · 익명' : '' %></p>
+  <% if (results.voterCount === 0) { %><p class="muted">투표한 사람이 없어요.</p><% } %>
+  <ul class="poll-results">
+    <% results.options.forEach((o) => { %>
+    <li<%- o.top ? ' class="top"' : '' %>>
+      <div class="poll-result-head"><span><%= o.top ? '🏆 ' : '' %><%= o.label %></span><span class="tnum"><%= o.count %>표 · <%= o.percent %>%</span></div>
+      <div class="poll-bar"><span style="width: <%= o.percent %>%"></span></div>
+      <% if (o.names.length) { %><p class="hint"><%= o.names.join(', ') %></p><% } %>
+    </li>
+    <% }) %>
+  </ul>
+  <% if (results.others.length) { %>
+  <h3>기타 (<%= results.otherCount %>)</h3>
+  <ul class="list">
+    <% results.others.forEach((g) => { %>
+    <li><%= g.text %><% if (g.count > 1) { %> <span class="muted">×<%= g.count %></span><% } %><% if (g.names.length) { %> <span class="hint">— <%= g.names.join(', ') %></span><% } %></li>
+    <% }) %>
+  </ul>
+  <% } %>
+</section>
